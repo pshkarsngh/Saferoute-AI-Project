@@ -1,0 +1,18 @@
+# Secrets & data
+.env
+# Large dataset archive (keep only the extracted data/ folder)
+data/raw/data.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
