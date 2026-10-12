@@ -1,0 +1,5 @@
+# SafeRoute AI — development / testing dependencies
+#
+# PHASE_04 decision D2: header-only. No packages are pinned here yet.
+# Testing and analysis tooling (e.g. pytest, coverage, linting) is deferred to
+# the phase that first needs it, to avoid unnecessary dependencies (Rule 18).

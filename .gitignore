@@ -16,3 +16,9 @@ venv/
 Thumbs.db
 .vscode/
 .idea/
+
+# PHASE_04: workspace-local environment & generated artifacts
+models/
+logs/
+data/
+.ultralytics/

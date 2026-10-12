@@ -1,0 +1,14 @@
+# SafeRoute AI — pinned runtime dependencies (PHASE_04, Gate A2 approved)
+# Python 3.12 / Windows / CUDA-enabled PyTorch (RTX 5050 Laptop, sm_120)
+# Install: python -m pip install --no-cache-dir -r requirements.txt
+#
+# The +cu130 local-version pins resolve ONLY from the PyTorch CUDA index below,
+# so this file cannot silently install the CPU-only PyPI wheel.
+--extra-index-url https://download.pytorch.org/whl/cu130
+
+torch==2.13.0+cu130
+torchvision==0.28.0+cu130
+ultralytics==8.4.163
+opencv-python==4.14.0.94
+numpy==2.5.3
+PyYAML==6.0.3
