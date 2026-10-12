@@ -1,0 +1,682 @@
+{
+  "phase": "PHASE_03",
+  "generated_utc": "2026-10-11T19:14:11.534661+00:00",
+  "workspace": "D:\\New folder (3)",
+  "dataset_dir": "D:\\New folder (3)\\data\\pothole_crack_manhole\\data",
+  "read_only": true,
+  "versions": {
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "numpy": "2.5.3",
+    "cv2": "5.0.0"
+  },
+  "config": {
+    "near_hamming": 5,
+    "time_gap_sec": 2,
+    "split_ratios": [
+      0.7,
+      0.2,
+      0.1
+    ],
+    "seed": 42
+  },
+  "counts": {
+    "images": 2009,
+    "labels_yolo": 2009,
+    "labels_poly": 2009,
+    "splits_present": []
+  },
+  "pairing": {
+    "images_without_yolo_label": [],
+    "yolo_labels_without_image": [],
+    "images_without_poly_label": [],
+    "poly_labels_without_image": []
+  },
+  "decode": {
+    "decoded_ok": 2009,
+    "failures": [],
+    "dimensions": {
+      "640x360": 2009
+    }
+  },
+  "exact_duplicate_groups": [
+    [
+      "vlcsnap-2025-02-18-17h03m41s574.jpg",
+      "vlcsnap-2025-02-18-17h04m14s457.jpg"
+    ],
+    [
+      "vlcsnap-2025-02-18-17h11m34s646.jpg",
+      "vlcsnap-2025-02-18-18h30m17s408.jpg"
+    ],
+    [
+      "vlcsnap-2025-02-19-14h41m29s105.jpg",
+      "vlcsnap-2025-02-19-14h41m49s395.jpg"
+    ],
+    [
+      "vlcsnap-2025-02-19-15h02m56s842.jpg",
+      "vlcsnap-2025-02-19-15h03m10s511.jpg"
+    ],
+    [
+      "vlcsnap-2025-02-26-20h36m03s983.jpg",
+      "vlcsnap-2025-02-26-20h36m04s054.jpg"
+    ]
+  ],
+  "exact_duplicate_image_count": 10,
+  "annotations": {
+    "malformed_yolo_lines": [],
+    "malformed_yolo_count": 0,
+    "out_of_range_yolo_count": 0,
+    "out_of_range_yolo_samples": [],
+    "zero_size_yolo_count": 1,
+    "zero_size_yolo_samples": [
+      [
+        "vlcsnap-00058.txt",
+        2,
+        "1 0.639062 0.786111 0.003125 0.000000"
+      ]
+    ],
+    "beyond_image_bounds_yolo_count": 63,
+    "beyond_image_bounds_yolo_samples": [
+      [
+        "20250216_164541.txt",
+        2,
+        "1 0.432031 0.879167 0.098438 0.247222"
+      ],
+      [
+        "20250219_164754.txt",
+        3,
+        "1 0.283593 0.481944 0.573437 0.330555"
+      ],
+      [
+        "20250219_164813.txt",
+        2,
+        "1 0.287500 0.736111 0.581250 0.505556"
+      ],
+      [
+        "20250219_164848.txt",
+        1,
+        "1 0.873438 0.719445 0.256249 0.227777"
+      ],
+      [
+        "20250219_170258.txt",
+        7,
+        "1 0.704688 0.695833 0.265625 0.613889"
+      ],
+      [
+        "20250223_104750.txt",
+        1,
+        "0 0.710156 0.881945 0.579688 0.236111"
+      ],
+      [
+        "20250223_143908.txt",
+        1,
+        "1 0.670312 0.827778 0.350001 0.350000"
+      ],
+      [
+        "20250223_143908.txt",
+        2,
+        "1 0.585156 0.708333 0.526562 0.594445"
+      ],
+      [
+        "20250223_143917.txt",
+        1,
+        "1 0.448438 0.727778 0.359375 0.550000"
+      ],
+      [
+        "20250223_144012.txt",
+        1,
+        "1 0.297656 0.648612 0.595313 0.686111"
+      ],
+      [
+        "20250223_144019.txt",
+        4,
+        "1 0.320312 0.659722 0.640625 0.669444"
+      ],
+      [
+        "20250223_144121.txt",
+        7,
+        "1 0.500000 0.541667 1.000000 0.916667"
+      ],
+      [
+        "20250223_144145.txt",
+        1,
+        "1 0.303906 0.700000 0.610938 0.588888"
+      ],
+      [
+        "20250223_144154.txt",
+        2,
+        "1 0.225000 0.413889 0.456250 0.483334"
+      ],
+      [
+        "20250223_144304.txt",
+        1,
+        "1 0.592187 0.706944 0.537501 0.591667"
+      ],
+      [
+        "20250223_144310.txt",
+        4,
+        "0 0.762500 0.888889 0.196876 0.227778"
+      ],
+      [
+        "20250223_144352.txt",
+        2,
+        "0 0.936719 0.313889 0.126563 0.144444"
+      ],
+      [
+        "20250223_144352.txt",
+        4,
+        "1 0.421094 0.680556 0.845313 0.633333"
+      ],
+      [
+        "20250223_144821.txt",
+        1,
+        "1 0.417969 0.600000 0.226562 0.805556"
+      ],
+      [
+        "20250223_144906.txt",
+        1,
+        "1 0.404687 0.630555 0.815625 0.755555"
+      ],
+      [
+        "20250223_144911.txt",
+        1,
+        "1 0.500000 0.609722 1.000000 0.786111"
+      ],
+      [
+        "20250223_144948.txt",
+        1,
+        "1 0.334375 0.566667 0.671875 0.861111"
+      ],
+      [
+        "vlcsnap-00102.txt",
+        3,
+        "1 0.142187 0.756944 0.284375 0.125000"
+      ],
+      [
+        "vlcsnap-00170.txt",
+        2,
+        "1 0.040625 0.773611 0.084375 0.091666"
+      ],
+      [
+        "vlcsnap-00188.txt",
+        1,
+        "1 0.103906 0.706944 0.207813 0.119445"
+      ],
+      [
+        "vlcsnap-00205.txt",
+        2,
+        "1 0.098438 0.602778 0.203125 0.077778"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h02m07s200.txt",
+        1,
+        "1 0.145312 0.705556 0.293750 0.172223"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h04m19s949.txt",
+        5,
+        "1 0.126562 0.613889 0.253125 0.311111"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h04m29s066.txt",
+        1,
+        "1 0.089843 0.613889 0.182813 0.238889"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h04m32s301.txt",
+        3,
+        "1 0.067187 0.441666 0.134375 0.066667"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h04m45s733.txt",
+        1,
+        "1 0.075781 0.640278 0.154688 0.180556"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h04m50s312.txt",
+        1,
+        "1 0.089843 0.615277 0.182813 0.208333"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h06m28s723.txt",
+        1,
+        "1 0.099219 0.647222 0.201563 0.122222"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h10m25s907.txt",
+        1,
+        "1 0.259375 0.702778 0.521875 0.127778"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h11m23s453.txt",
+        3,
+        "1 0.055468 0.562500 0.110937 0.086112"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h30m24s122.txt",
+        6,
+        "1 0.074219 0.705556 0.154687 0.072223"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h30m26s925.txt",
+        4,
+        "1 0.089062 0.652778 0.181251 0.194444"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h41m45s164.txt",
+        2,
+        "2 0.958594 0.686111 0.110938 0.077778"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h41m45s164.txt",
+        3,
+        "2 0.931250 0.581945 0.162500 0.063889"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h42m13s186.txt",
+        1,
+        "1 0.927344 0.795833 0.148437 0.147222"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h42m14s982.txt",
+        2,
+        "1 0.912500 0.772222 0.178124 0.222222"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h47m04s939.txt",
+        1,
+        "1 0.071094 0.626389 0.151562 0.141666"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h47m13s411.txt",
+        1,
+        "1 0.192968 0.586111 0.385937 0.294444"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h13m29s907.txt",
+        1,
+        "2 0.087500 0.683334 0.178126 0.094445"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h14m04s766.txt",
+        1,
+        "2 0.942187 0.738889 0.121875 0.133334"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h25m16s322.txt",
+        1,
+        "1 0.889844 0.727778 0.226562 0.150000"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h26m05s423.txt",
+        3,
+        "1 0.886718 0.652778 0.257813 0.161111"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h17m45s679.txt",
+        1,
+        "2 0.053125 0.700000 0.121874 0.038888"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h18m13s117.txt",
+        2,
+        "2 0.964063 0.768056 0.071875 0.063889"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h28m52s076.txt",
+        2,
+        "1 0.883594 0.804167 0.235937 0.213889"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h29m23s045.txt",
+        4,
+        "1 0.908594 0.675000 0.182813 0.144444"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h29m25s660.txt",
+        2,
+        "0 0.964063 0.784722 0.081249 0.097222"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h49m03s416.txt",
+        2,
+        "1 0.936719 0.758333 0.126563 0.122222"
+      ],
+      [
+        "vlcsnap-2025-02-19-17h09m28s277.txt",
+        3,
+        "1 0.072656 0.729167 0.145313 0.175000"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h33m23s476.txt",
+        2,
+        "2 0.939063 0.847222 0.121875 0.100000"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h34m50s947.txt",
+        3,
+        "1 0.839844 0.787500 0.329687 0.186112"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h36m00s346.txt",
+        3,
+        "1 0.125000 0.676389 0.253126 0.247222"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h36m39s333.txt",
+        3,
+        "1 0.085156 0.768056 0.170313 0.236111"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h38m20s232.txt",
+        2,
+        "1 0.836719 0.781945 0.329687 0.208333"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h40m24s413.txt",
+        1,
+        "2 0.917188 0.895833 0.165625 0.186111"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h40m55s588.txt",
+        1,
+        "1 0.501563 0.794444 0.999999 0.233333"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h40m57s113.txt",
+        1,
+        "1 0.559375 0.784722 0.893750 0.313889"
+      ],
+      [
+        "vlcsnap-2025-02-26-20h42m15s464.txt",
+        2,
+        "1 0.140625 0.697222 0.287500 0.172222"
+      ]
+    ],
+    "invalid_class_id_yolo_count": 0,
+    "invalid_class_id_yolo_values": [],
+    "malformed_poly_count": 0,
+    "out_of_range_poly_count": 45,
+    "zero_size_poly_count": 1,
+    "invalid_class_id_poly_count": 0,
+    "invalid_class_id_poly_values": []
+  },
+  "class_hist": {
+    "boxes_by_id": {
+      "0": 1261,
+      "1": 2519,
+      "2": 957
+    },
+    "boxes_by_name": {
+      "pothole": 1261,
+      "crack": 2519,
+      "manhole": 957
+    },
+    "images_by_name": {
+      "pothole": 795,
+      "crack": 1375,
+      "manhole": 759
+    },
+    "total_boxes": 4737
+  },
+  "empty_labels": {
+    "count": 0,
+    "files": []
+  },
+  "coco": {
+    "images": 2009,
+    "annotations": 4737,
+    "categories": {
+      "0": "pothole",
+      "1": "crack",
+      "2": "manhole"
+    },
+    "boxes_by_name": {
+      "pothole": 1261,
+      "crack": 2519,
+      "manhole": 957
+    },
+    "bad_bbox_count": 46,
+    "bad_image_refs": 0,
+    "bad_category_refs": 0,
+    "unsafe_file_names": [],
+    "has_info": false,
+    "has_licenses": false
+  },
+  "reconcile": {
+    "total_boxes_yolo": 4737,
+    "total_boxes_coco": 4737,
+    "per_class_boxes_yolo_vs_coco": {
+      "pothole": [
+        1261,
+        1261
+      ],
+      "crack": [
+        2519,
+        2519
+      ],
+      "manhole": [
+        957,
+        957
+      ]
+    },
+    "images_yolo_vs_coco": [
+      2009,
+      2009
+    ]
+  },
+  "duplicates": {
+    "content_groups_total": 1771,
+    "multi_image_groups": 118,
+    "images_in_multi_groups": 356,
+    "exact_only_groups": 5,
+    "largest_groups": [
+      [
+        "vlcsnap-00007",
+        "vlcsnap-00028",
+        "vlcsnap-00029",
+        "vlcsnap-00030",
+        "vlcsnap-00031",
+        "vlcsnap-00032",
+        "vlcsnap-00037",
+        "vlcsnap-00041",
+        "vlcsnap-00042",
+        "vlcsnap_2025-03-16-15h13m58s251",
+        "vlcsnap_2025-03-16-15h14m02s970",
+        "vlcsnap_2025-03-16-15h14m57s465",
+        "vlcsnap_2025-03-16-15h15m07s464",
+        "vlcsnap_2025-03-16-15h15m10s018",
+        "vlcsnap_2025-03-16-15h15m41s480",
+        "vlcsnap_2025-03-16-15h15m43s873",
+        "vlcsnap_2025-03-16-15h15m46s340",
+        "vlcsnap_2025-03-16-15h15m48s964",
+        "vlcsnap_2025-03-16-15h15m53s196",
+        "vlcsnap_2025-03-16-15h15m56s199"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h30m25s629",
+        "vlcsnap-2025-02-18-23h30m26s420",
+        "vlcsnap-2025-02-18-23h30m28s299",
+        "vlcsnap-2025-02-18-23h30m28s596",
+        "vlcsnap-2025-02-18-23h30m28s793",
+        "vlcsnap-2025-02-18-23h30m28s990",
+        "vlcsnap-2025-02-18-23h30m29s418",
+        "vlcsnap-2025-02-18-23h30m29s649",
+        "vlcsnap-2025-02-19-14h00m34s961",
+        "vlcsnap-2025-02-19-14h00m36s546",
+        "vlcsnap-2025-02-19-14h00m38s656",
+        "vlcsnap-2025-02-19-14h00m39s870",
+        "vlcsnap-2025-02-19-14h00m45s970",
+        "vlcsnap-2025-02-19-14h00m47s155",
+        "vlcsnap-2025-02-19-14h18m38s123",
+        "vlcsnap-2025-02-19-14h18m39s521",
+        "vlcsnap-2025-02-19-14h27m15s411",
+        "vlcsnap-2025-02-19-14h59m07s946",
+        "vlcsnap-2025-02-19-14h59m33s317"
+      ],
+      [
+        "vlcsnap-2025-02-19-13h52m41s173",
+        "vlcsnap-2025-02-19-13h52m44s869",
+        "vlcsnap-2025-02-19-13h52m49s424",
+        "vlcsnap-2025-02-19-13h53m10s535",
+        "vlcsnap-2025-02-19-13h53m12s243",
+        "vlcsnap-2025-02-19-13h53m13s598",
+        "vlcsnap-2025-02-19-13h53m14s903",
+        "vlcsnap-2025-02-19-13h53m16s389",
+        "vlcsnap-2025-02-19-13h53m18s160",
+        "vlcsnap-2025-02-19-14h07m10s853",
+        "vlcsnap-2025-02-19-14h07m11s728",
+        "vlcsnap-2025-02-19-14h07m15s238",
+        "vlcsnap-2025-02-19-14h07m17s013"
+      ],
+      [
+        "vlcsnap-2025-02-19-13h53m22s735",
+        "vlcsnap-2025-02-19-14h06m44s323",
+        "vlcsnap-2025-02-19-14h06m46s071",
+        "vlcsnap-2025-02-19-14h06m47s953",
+        "vlcsnap-2025-02-19-14h06m48s938",
+        "vlcsnap-2025-02-19-14h06m58s511"
+      ],
+      [
+        "20250219_165424",
+        "vlcsnap-2025-02-19-14h05m09s849",
+        "vlcsnap-2025-02-19-14h05m11s136",
+        "vlcsnap-2025-02-19-14h06m18s450",
+        "vlcsnap_2025-03-16-15h15m28s804"
+      ],
+      [
+        "vlcsnap-00012",
+        "vlcsnap-00013",
+        "vlcsnap-00014",
+        "vlcsnap-00015",
+        "vlcsnap-00016"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h15m48s025",
+        "vlcsnap-2025-02-18-23h15m49s227",
+        "vlcsnap-2025-02-18-23h15m51s021",
+        "vlcsnap-2025-02-18-23h15m53s485",
+        "vlcsnap-2025-02-18-23h15m54s469"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h17m58s126",
+        "vlcsnap-2025-02-19-14h17m59s275",
+        "vlcsnap-2025-02-19-14h18m04s533",
+        "vlcsnap-2025-02-19-17h01m20s988",
+        "vlcsnap-2025-02-19-17h01m22s346"
+      ],
+      [
+        "vlcsnap-2025-02-19-14h56m49s906",
+        "vlcsnap-2025-02-19-14h56m50s870",
+        "vlcsnap-2025-02-19-14h56m56s152",
+        "vlcsnap-2025-02-19-15h05m02s468",
+        "vlcsnap-2025-02-19-15h05m07s275"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h11m34s646",
+        "vlcsnap-2025-02-18-18h30m17s408",
+        "vlcsnap-2025-02-18-18h30m20s293",
+        "vlcsnap-2025-02-18-18h30m22s081"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h07m46s200",
+        "vlcsnap-2025-02-18-23h07m47s847",
+        "vlcsnap-2025-02-18-23h07m50s137",
+        "vlcsnap-2025-02-18-23h07m53s515"
+      ],
+      [
+        "vlcsnap-00078",
+        "vlcsnap-00081",
+        "vlcsnap-00082"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h01m48s245",
+        "vlcsnap-2025-02-18-17h01m51s484",
+        "vlcsnap-2025-02-18-17h01m53s564"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h02m19s484",
+        "vlcsnap-2025-02-18-17h02m20s958",
+        "vlcsnap-2025-02-18-17h02m23s142"
+      ],
+      [
+        "vlcsnap-2025-02-18-17h03m00s440",
+        "vlcsnap-2025-02-18-17h03m01s844",
+        "vlcsnap-2025-02-18-17h03m03s515"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h33m09s423",
+        "vlcsnap-2025-02-18-18h33m10s611",
+        "vlcsnap-2025-02-18-18h33m11s843"
+      ],
+      [
+        "vlcsnap-2025-02-18-18h33m32s561",
+        "vlcsnap-2025-02-18-18h33m33s896",
+        "vlcsnap-2025-02-18-18h33m34s959"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h15m43s091",
+        "vlcsnap-2025-02-18-23h15m44s701",
+        "vlcsnap-2025-02-18-23h15m45s809"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h24m01s127",
+        "vlcsnap-2025-02-18-23h24m02s649",
+        "vlcsnap-2025-02-18-23h24m03s729"
+      ],
+      [
+        "vlcsnap-2025-02-18-23h24m36s429",
+        "vlcsnap-2025-02-18-23h24m37s734",
+        "vlcsnap-2025-02-18-23h24m39s634"
+      ]
+    ]
+  },
+  "leakage": {
+    "source_splits_present": false,
+    "policy_documented": "not documented (single-pool dataset)",
+    "cross_split_overlap": "n/a - no source splits",
+    "content_grouping_applied": true,
+    "grouping_signals": [
+      "exact byte duplicate (sha256)",
+      "near duplicate (dHash hamming <= 5)",
+      "same-date capture adjacency (<= 2s) as source/session signal"
+    ],
+    "residual_risk": "Frames from the same capture run may still be visually distinct yet share a source/session/road segment; filenames encode capture time only, so true session/device/segment identity is NOT provable from the data. The proposed split keeps content/time groups intact to reduce leakage; residual risk noted."
+  },
+  "path_safety": {
+    "dataset_dir_inside_workspace": true,
+    "coco_unsafe_file_names": [],
+    "external_references": []
+  },
+  "proposed_split": {
+    "method": "group-aware (content+time groups kept intact), deterministic seed",
+    "seed": 42,
+    "ratios_target": [
+      0.7,
+      0.2,
+      0.1
+    ],
+    "images_per_split": {
+      "train": 1406,
+      "val": 402,
+      "test": 201
+    },
+    "boxes_per_class_per_split": {
+      "train": {
+        "crack": 1741,
+        "pothole": 863,
+        "manhole": 697
+      },
+      "val": {
+        "crack": 537,
+        "pothole": 264,
+        "manhole": 172
+      },
+      "test": {
+        "manhole": 88,
+        "pothole": 134,
+        "crack": 241
+      }
+    },
+    "created_on_disk": false
+  }
+}

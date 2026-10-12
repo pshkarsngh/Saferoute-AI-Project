@@ -1,0 +1,244 @@
+{
+  "phase": "PHASE_03",
+  "kind": "split_manifest_proposal_v2_validation",
+  "generated_utc": "2026-10-11T19:39:40.712307+00:00",
+  "workspace": "D:\\New folder (3)",
+  "read_only_dataset": true,
+  "created_split_dirs": false,
+  "config": {
+    "seed": 42,
+    "ratios": [
+      0.7,
+      0.2,
+      0.1
+    ],
+    "near_hamming": 5,
+    "untimed_policy": "212 genuinely timestamp-less vlcsnap-numeric frames forced into ONE indivisible group",
+    "assignment": "deterministic descending-group-size, largest-remaining-deficit"
+  },
+  "coverage": {
+    "images_total": 2009,
+    "manifest_rows": 2009,
+    "unique_stems": 2009,
+    "duplicates": 0,
+    "missing": 0,
+    "extra": 0,
+    "untimed_frames": 212
+  },
+  "variants": {
+    "v2": {
+      "sizes": {
+        "train": 1406,
+        "val": 402,
+        "test": 201
+      },
+      "groups_total": 421,
+      "largest_group": 265,
+      "groups_crossing": 0,
+      "exact_crossing": 0,
+      "dhash_le5_cross": 0,
+      "dhash_le6_cross": 9,
+      "dhash_le8_cross": 154,
+      "dhash_le10_cross": 607,
+      "session_le2_cross_pairs": 0,
+      "session_le2_cross_imgs": 0,
+      "session_le5_cross_pairs": 0,
+      "session_le5_cross_imgs": 0,
+      "session_le30_cross_pairs": 269,
+      "session_le30_cross_imgs": 461,
+      "session_le60_cross_pairs": 296,
+      "session_le60_cross_imgs": 495,
+      "session_le300_cross_pairs": 319,
+      "session_le300_cross_imgs": 527,
+      "boxes": {
+        "train": {
+          "pothole": 865,
+          "crack": 1904,
+          "manhole": 660
+        },
+        "val": {
+          "pothole": 259,
+          "crack": 427,
+          "manhole": 187
+        },
+        "test": {
+          "pothole": 137,
+          "crack": 188,
+          "manhole": 110
+        }
+      },
+      "imgs_with_class": {
+        "train": {
+          "pothole": 546,
+          "crack": 1011,
+          "manhole": 523
+        },
+        "val": {
+          "pothole": 162,
+          "crack": 254,
+          "manhole": 155
+        },
+        "test": {
+          "pothole": 87,
+          "crack": 110,
+          "manhole": 81
+        }
+      },
+      "family_split": {
+        "camera": {
+          "train": 36,
+          "test": 31,
+          "val": 35
+        },
+        "vlcsnap_hyphen_ts": {
+          "train": 1084,
+          "val": 330,
+          "test": 145
+        },
+        "vlcsnap_numeric": {
+          "train": 212
+        },
+        "vlcsnap_underscore_ts": {
+          "val": 37,
+          "train": 74,
+          "test": 25
+        }
+      },
+      "date_split": {
+        "train": {
+          "2025-02-16": 1,
+          "2025-02-18": 445,
+          "2025-02-19": 484,
+          "2025-02-23": 12,
+          "2025-02-26": 178,
+          "2025-03-16": 74,
+          "untimed": 212
+        },
+        "val": {
+          "2025-02-16": 1,
+          "2025-02-18": 98,
+          "2025-02-19": 233,
+          "2025-02-23": 13,
+          "2025-02-26": 20,
+          "2025-03-16": 37
+        },
+        "test": {
+          "2025-02-16": 1,
+          "2025-02-18": 38,
+          "2025-02-19": 104,
+          "2025-02-23": 14,
+          "2025-02-26": 19,
+          "2025-03-16": 25
+        }
+      },
+      "untimed_all_one_split": true,
+      "untimed_split": "train",
+      "session_gap_sec": 5
+    },
+    "v2_strict30s": {
+      "sizes": {
+        "train": 1406,
+        "val": 402,
+        "test": 201
+      },
+      "groups_total": 61,
+      "largest_group": 389,
+      "groups_crossing": 0,
+      "exact_crossing": 0,
+      "dhash_le5_cross": 0,
+      "dhash_le6_cross": 3,
+      "dhash_le8_cross": 56,
+      "dhash_le10_cross": 301,
+      "session_le2_cross_pairs": 0,
+      "session_le2_cross_imgs": 0,
+      "session_le5_cross_pairs": 0,
+      "session_le5_cross_imgs": 0,
+      "session_le30_cross_pairs": 0,
+      "session_le30_cross_imgs": 0,
+      "session_le60_cross_pairs": 21,
+      "session_le60_cross_imgs": 42,
+      "session_le300_cross_pairs": 41,
+      "session_le300_cross_imgs": 79,
+      "boxes": {
+        "train": {
+          "pothole": 896,
+          "crack": 1864,
+          "manhole": 701
+        },
+        "val": {
+          "pothole": 226,
+          "crack": 481,
+          "manhole": 165
+        },
+        "test": {
+          "pothole": 139,
+          "crack": 174,
+          "manhole": 91
+        }
+      },
+      "imgs_with_class": {
+        "train": {
+          "pothole": 589,
+          "crack": 1010,
+          "manhole": 545
+        },
+        "val": {
+          "pothole": 118,
+          "crack": 259,
+          "manhole": 138
+        },
+        "test": {
+          "pothole": 88,
+          "crack": 106,
+          "manhole": 76
+        }
+      },
+      "family_split": {
+        "camera": {
+          "train": 47,
+          "test": 20,
+          "val": 35
+        },
+        "vlcsnap_hyphen_ts": {
+          "train": 1020,
+          "val": 362,
+          "test": 177
+        },
+        "vlcsnap_numeric": {
+          "train": 212
+        },
+        "vlcsnap_underscore_ts": {
+          "train": 127,
+          "val": 5,
+          "test": 4
+        }
+      },
+      "date_split": {
+        "train": {
+          "2025-02-16": 3,
+          "2025-02-18": 326,
+          "2025-02-19": 513,
+          "2025-02-23": 8,
+          "2025-02-26": 217,
+          "2025-03-16": 127,
+          "untimed": 212
+        },
+        "val": {
+          "2025-02-18": 226,
+          "2025-02-19": 155,
+          "2025-02-23": 16,
+          "2025-03-16": 5
+        },
+        "test": {
+          "2025-02-18": 29,
+          "2025-02-19": 153,
+          "2025-02-23": 15,
+          "2025-03-16": 4
+        }
+      },
+      "untimed_all_one_split": true,
+      "untimed_split": "train",
+      "session_gap_sec": 30
+    }
+  }
+}
