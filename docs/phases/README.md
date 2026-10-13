@@ -2,8 +2,8 @@
 
 > **Project:** SafeRoute AI — Intelligent Road Safety Navigation System
 > **Workspace:** `D:\New folder (3)`
-> **Status:** Planning baseline — no phase has been started
-> **Date:** 2026-10-11
+> **Status:** Phases 00–18 delivered (reports in `../reports/`); PHASE_17 uses the deterministic fallback and PHASE_13 OSRM / PHASE_14 Mapillary / PHASE_15 Overpass live paths are implemented but offline-verified
+> **Date:** 2026-10-14
 > **Governing rules:** [`../../master_rules.md`](../../master_rules.md) (authoritative)
 > **Companion documents:** [`../PRD.md`](../PRD.md) · [`../TRD.md`](../TRD.md) · [`../ARCHITECTURE.md`](../ARCHITECTURE.md) · [`../TRAINING_RULES.md`](../TRAINING_RULES.md)
 
@@ -12,9 +12,11 @@ its own Markdown file (`PHASE_00.md` … `PHASE_18.md`) containing its objective
 detailed procedure, approval gates, validation checks, acceptance criteria, stop conditions and
 a completion-report template.
 
-**Nothing in this directory claims that any phase has been executed.** All 19 phases are
-documentation only and remain **Not started**. No dataset, environment, source code, model,
-backend, frontend or integration exists in the workspace as of this index.
+**Status:** all 19 phases have completion reports under [`../reports/`](../reports/). A dataset,
+GPU-trained YOLO11 baseline, detection/aggregation/risk modules, routing and imagery adapters,
+a facilities service, a backend API with persistence, an explanation layer (fallback) and a
+frontend now exist in the workspace. Live third-party paths (OSRM, Mapillary, Overpass, Ollama)
+are implemented but were verified offline; enabling them requires per-phase approval (Rule 19).
 
 ---
 
@@ -53,10 +55,10 @@ Phases are executed **one at a time** and each must be verified before the next 
 | [PHASE_12](./PHASE_12.md) | Deterministic Risk Engine | Pure, unit-tested risk scoring function and config | Complete |
 | [PHASE_13](./PHASE_13.md) | Routing Provider Selection & Adapter | Approved provider and provider-independent route adapter | Complete |
 | [PHASE_14](./PHASE_14.md) | Permitted Imagery Acquisition Adapter | Imagery adapter limited to permitted sources | Complete |
-| [PHASE_15](./PHASE_15.md) | Facilities Lookup Service | Facility service kept separate from the hazard score | Not started |
-| [PHASE_16](./PHASE_16.md) | Backend API & Persistence | FastAPI endpoints with status/error schemas and MySQL schema | Not started |
-| [PHASE_17](./PHASE_17.md) | Grounded LLM Explanation Layer | Schema-validated, grounded explanations with fallback | Not started |
-| [PHASE_18](./PHASE_18.md) | Frontend Integration & End-to-End Validation | React comparison UI and full E2E + negative test evidence | Not started |
+| [PHASE_15](./PHASE_15.md) | Facilities Lookup Service | Facility service kept separate from the hazard score | Complete |
+| [PHASE_16](./PHASE_16.md) | Backend API & Persistence | Backend endpoints with status/error schemas and SQLite schema | Complete |
+| [PHASE_17](./PHASE_17.md) | Grounded LLM Explanation Layer | Schema-validated, grounded explanations with fallback | Complete (fallback) |
+| [PHASE_18](./PHASE_18.md) | Frontend Integration & End-to-End Validation | Frontend comparison UI and full E2E + negative test evidence | Complete |
 
 ---
 
@@ -104,7 +106,7 @@ PHASE_00  Documentation & governance
 | **Awaiting approval** | Procedure complete; completion report submitted; next phase not authorised. |
 | **Complete** | Reviewed, validated against acceptance criteria and explicitly approved. |
 
-> All phases are currently **Not started**.
+> All phases now have completion reports; see the reports directory for actual results.
 
 ---
 

@@ -38,7 +38,7 @@ class TestHazardDetector(unittest.TestCase):
     def test_detector_initialization(self):
         """Verify detector loads approved model and preprocessing pipeline."""
         self.assertEqual(self.detector.model_version, "saferoute-yolo11-v1")
-        self.assertEqual(self.detector.detector_version, "detect-v1")
+        self.assertEqual(self.detector.detector_version, "detect-v2")
         self.assertEqual(self.detector.pipeline.version, "preprocess-v1")
         self.assertEqual(self.detector.checkpoint_path, APPROVED_CHECKPOINT.resolve())
 
@@ -158,6 +158,23 @@ class TestHazardDetector(unittest.TestCase):
                     temp_dir.rmdir()
                 except OSError:
                     pass
+
+
+    def test_grayscale_and_batch_inputs(self):
+        """Robustness: grayscale (single-channel) and batch inputs are handled."""
+        gray = np.full((240, 320), 100, dtype=np.uint8)
+        r = self.detector.detect(gray, conf=0.5)
+        self.assertIsInstance(r, ImageDetectionResult)
+        batch = self.detector.detect_batch([gray, VALID_TEST_IMAGE], conf=0.3)
+        self.assertEqual(len(batch), 2)
+        self.assertTrue(all(isinstance(x, ImageDetectionResult) for x in batch))
+
+    def test_detection_config_loaded(self):
+        """Detection config supplies imgsz/max_det/augment settings."""
+        self.assertIsInstance(self.detector.imgsz, int)
+        self.assertGreater(self.detector.imgsz, 0)
+        self.assertIsInstance(self.detector.max_det, int)
+        self.assertIsInstance(self.detector.augment, bool)
 
 
 if __name__ == "__main__":

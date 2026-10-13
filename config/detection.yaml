@@ -1,0 +1,36 @@
+# SafeRoute AI — Detection / Inference Configuration
+# Phase: model hardening (extends PHASE_10 inference module)
+# Follows TRD §7, ARCHITECTURE §4, master_rules.md Rules 4, 5, 6, 14.
+#
+# This config tunes INFERENCE only. It does not change the accepted checkpoint
+# or fabricate classes. Unsupported classes are still reported honestly (Rule 5).
+
+metadata:
+  version: "detect-v2"
+  model_version: "saferoute-yolo11-v1"
+
+model:
+  checkpoint: "models/training/saferoute-yolo11-v1/weights/best.pt"
+
+inference:
+  imgsz: 640            # inference resolution (higher can help small cracks)
+  conf: 0.15            # lowered from 0.25 to recover low-confidence true hazards
+  iou: 0.45             # NMS IoU
+  max_det: 300
+  augment: false        # test-time augmentation (TTA); slower, higher recall
+  batch: 1
+  device: null          # null = auto (cuda if available else cpu)
+
+# Classes the accepted checkpoint actually learned (Rule 5 honesty).
+supported_classes:
+  0: pothole
+  1: crack
+
+# Classes present in the project target set but NOT trained in this checkpoint.
+# Reported as unsupported/unassessed, never fabricated (Rules 5, 9).
+unsupported_classes:
+  - manhole
+  - damaged_patch
+  - waterlogging
+  - uneven_surface
+  - speed_bump

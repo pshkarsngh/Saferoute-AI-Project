@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SafeRoute AI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>SafeRoute AI</h1>
+    <p class="sub">Route safety comparison grounded in verified data only.</p>
+  </header>
+
+  <section class="card">
+    <h2>1. Destination</h2>
+    <p class="hint">Coordinates are required (no geocoding provider is configured).</p>
+    <div class="grid">
+      <label>Origin latitude <input id="olat" type="number" step="0.0001" value="12.9716" /></label>
+      <label>Origin longitude <input id="olon" type="number" step="0.0001" value="77.5946" /></label>
+      <label>Destination latitude <input id="dlat" type="number" step="0.0001" value="12.9352" /></label>
+      <label>Destination longitude <input id="dlon" type="number" step="0.0001" value="77.6245" /></label>
+    </div>
+    <div class="row">
+      <button id="btnRoutes">Find routes</button>
+      <button id="btnAnalyze" class="primary">Analyze safety</button>
+      <span id="status" class="status"></span>
+    </div>
+  </section>
+
+  <section class="card"><h2>2. Routes returned</h2><div id="routes"><em>No data yet.</em></div></section>
+  <section class="card"><h2>3. Comparison &amp; recommendation</h2><div id="comparison"><em>No data yet.</em></div></section>
+  <section class="card"><h2>4. Hazard evidence</h2><div id="hazards"><em>No data yet.</em></div></section>
+  <section class="card"><h2>5. Nearby facilities (context only — not part of the score)</h2><div id="facilities"><em>Not loaded.</em></div></section>
+  <section class="card"><h2>6. Explanation</h2><div id="explanation"><em>No data yet.</em></div></section>
+  <section class="card disclosures"><h2>7. Coverage, limitations &amp; honesty</h2><div id="disclosures"><em>No data yet.</em></div></section>
+
+  <script src="app.js"></script>
+</body>
+</html>

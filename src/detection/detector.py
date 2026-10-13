@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
+import yaml
 
 from src.preprocessing.pipeline import (
     ImageStatus,
@@ -25,7 +26,7 @@ from src.detection.schemas import (
     ImageDetectionResult,
 )
 
-__version__ = "detect-v1"
+__version__ = "detect-v2"
 MODEL_VERSION = "saferoute-yolo11-v1"
 
 # Supported target classes verified from PHASE_03 audit and PHASE_07/08
@@ -35,6 +36,7 @@ SUPPORTED_CLASSES = {
 }
 
 DEFAULT_CHECKPOINT_REL = Path("models/training/saferoute-yolo11-v1/weights/best.pt")
+DEFAULT_DETECTION_CONFIG = Path("config/detection.yaml")
 
 
 class HazardDetector:
@@ -53,21 +55,37 @@ class HazardDetector:
     def __init__(
         self,
         checkpoint_path: Optional[Union[str, Path]] = None,
-        conf_threshold: float = 0.25,
-        iou_threshold: float = 0.45,
+        conf_threshold: Optional[float] = None,
+        iou_threshold: Optional[float] = None,
         device: Optional[Union[int, str]] = None,
         workspace_root: Optional[Union[str, Path]] = None,
         preprocessing_pipeline: Optional[PreprocessingPipeline] = None,
+        config_path: Optional[Union[str, Path]] = None,
+        config_dict: Optional[Dict[str, Any]] = None,
     ):
         self.detector_version = __version__
         self.model_version = MODEL_VERSION
-        self.conf_threshold = float(conf_threshold)
-        self.iou_threshold = float(iou_threshold)
 
         if workspace_root is None:
             self.workspace_root = Path(__file__).resolve().parent.parent.parent
         else:
             self.workspace_root = Path(workspace_root).resolve()
+
+        # Load inference configuration; explicit arguments override config values.
+        cfg = config_dict
+        if cfg is None:
+            cfg_p = Path(config_path) if config_path else (self.workspace_root / DEFAULT_DETECTION_CONFIG)
+            cfg = {}
+            if cfg_p.is_file():
+                with open(cfg_p, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f) or {}
+        inf = cfg.get("inference", {})
+        self.imgsz = int(inf.get("imgsz", 640))
+        self.conf_threshold = float(conf_threshold if conf_threshold is not None else inf.get("conf", 0.25))
+        self.iou_threshold = float(iou_threshold if iou_threshold is not None else inf.get("iou", 0.45))
+        self.max_det = int(inf.get("max_det", 300))
+        self.augment = bool(inf.get("augment", False))
+        self.batch = int(inf.get("batch", 1))
 
         if checkpoint_path is None:
             self.checkpoint_path = (self.workspace_root / DEFAULT_CHECKPOINT_REL).resolve()
@@ -209,6 +227,12 @@ class HazardDetector:
                 error="Failed to decode image array into valid BGR pixels.",
             )
 
+        # Robustness: accept single-channel (grayscale) and 4-channel (BGRA) inputs.
+        if original_bgr.ndim == 2:
+            original_bgr = cv2.cvtColor(original_bgr, cv2.COLOR_GRAY2BGR)
+        elif original_bgr.ndim == 3 and original_bgr.shape[2] == 4:
+            original_bgr = cv2.cvtColor(original_bgr, cv2.COLOR_BGRA2BGR)
+
         orig_h, orig_w = original_bgr.shape[:2]
 
         # 3. Preprocessing using PHASE_06 letterbox & transforms
@@ -224,6 +248,9 @@ class HazardDetector:
                 source=prepared.image,
                 conf=active_conf,
                 iou=self.iou_threshold,
+                imgsz=self.imgsz,
+                max_det=self.max_det,
+                augment=self.augment,
                 device=self.device,
                 verbose=False,
             )
@@ -354,3 +381,11 @@ class HazardDetector:
         out_p.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(out_p), canvas)
         return out_p
+
+    def detect_batch(self, image_inputs: List[Union[str, Path, np.ndarray, bytes]], **kwargs) -> List[ImageDetectionResult]:
+        """Run detection over many inputs, returning one structured result each.
+
+        Iterates the hardened single-image path so every input kind (path, bytes,
+        ndarray) and every failure mode is handled identically. Order is preserved.
+        """
+        return [self.detect(img, **kwargs) for img in image_inputs]
