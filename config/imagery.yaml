@@ -1,0 +1,55 @@
+# SafeRoute AI — Permitted Imagery Acquisition Configuration
+# Phase ID: PHASE_14
+# Follows TRD §10, ARCHITECTURE §8, master_rules.md Rules 1, 8, 9, 14, 19
+
+metadata:
+  version: "imagery-v1"
+  date: "2026-10-13"
+
+# Permitted Sources Registry (Rule 8)
+sources:
+  workspace_dashcam_v1:
+    enabled: true
+    source_type: "local_archive"
+    licence: "CC-BY 4.0"
+    attribution: "Roboflow Universe / Pothole, Crack & Manhole Dataset"
+    commercial_use_permitted: true
+    ml_inference_permitted: true
+    local_storage_permitted: true
+
+  mapillary:
+    enabled: true
+    source_type: "external_api"
+    base_url: "https://graph.mapillary.com"
+    licence: "CC-BY-SA 4.0"
+    attribution: "Mapillary (CC-BY-SA 4.0)"
+    commercial_use_permitted: true
+    ml_inference_permitted: true
+    local_storage_permitted: true
+
+  google_street_view:
+    enabled: false
+    reason: "Strict commercial ToS §3.2.3 forbids automated downloading, caching, and model ingestion."
+
+# Storage Location inside Workspace (Rule 1)
+storage:
+  cache_dir: "data/imagery"
+  create_if_missing: true
+
+# Spatial Matching Policy (TRD §10.1)
+matching:
+  search_radius_meters: 25.0      # Maximum geographic distance from segment geometry
+  max_images_per_segment: 3       # Max frames retained per assessable segment
+  min_images_per_segment: 1       # Minimum required for non-empty assessment
+
+# Timeliness & Staleness Policy (Rule 9)
+staleness:
+  max_age_days: 180               # 6 months threshold for fresh street evidence
+  flag_stale_as_limitation: true  # Flag stale imagery in metadata
+  reject_stale_imagery: false     # Mark stale rather than rejecting outright
+
+# Safety & Governance Guardrails (Rule 8, Rule 9)
+guardrails:
+  enforce_permitted_source_only: true
+  forbid_routing_provider_imagery: true
+  never_treat_unavailable_as_safe: true

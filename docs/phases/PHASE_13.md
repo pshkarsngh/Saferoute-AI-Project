@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 13: Routing Provider Selection & Adapter
 
 > **Phase ID:** PHASE_13
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete
 > **Predecessor:** [`PHASE_12`](./PHASE_12.md) — Deterministic Risk Engine
 > **Successor:** [`PHASE_14`](./PHASE_14.md) — Permitted Imagery Acquisition Adapter
 > **Index:** [`README.md`](./README.md)
@@ -112,13 +112,13 @@ The adapter isolates the provider so it can be swapped without touching higher l
 
 ## 7. Acceptance criteria
 
-- [ ] Routing provider selected and terms reviewed/recorded.
-- [ ] Provider-independent adapter implemented and documented.
-- [ ] Fewer-than-four and zero-route cases handled without padding.
-- [ ] Failure/timeout/rate-limit produce explicit errors.
-- [ ] Segment IDs stable and documented.
-- [ ] No credential committed; no unauthorized paid call.
-- [ ] Completion report submitted and accepted.
+- [x] Routing provider selected and terms reviewed/recorded.
+- [x] Provider-independent adapter implemented and documented.
+- [x] Fewer-than-four and zero-route cases handled without padding.
+- [x] Failure/timeout/rate-limit produce explicit errors.
+- [x] Segment IDs stable and documented.
+- [x] No credential committed; no unauthorized paid call.
+- [x] Completion report submitted and accepted.
 
 ---
 

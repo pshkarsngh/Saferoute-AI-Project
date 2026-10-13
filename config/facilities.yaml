@@ -1,0 +1,53 @@
+# SafeRoute AI — Facilities Configuration
+# Phase ID: PHASE_15
+# Follows PRD §4.7, TRD §4.7, ARCHITECTURE §8, master_rules.md Rules 11, 13, 17, 19
+#
+# Facilities are CONTEXT ONLY. They are never an input to the deterministic
+# hazard score or route ranking (Rule 11).
+
+metadata:
+  version: "facilities-v1"
+  date: "2026-10-13"
+  default_provider: "mock"           # Offline deterministic fixtures (no network)
+  live_provider: "overpass"          # OpenStreetMap Overpass API (ODbL, $0, no key)
+
+providers:
+  overpass:
+    base_url: "https://overpass-api.de/api/interpreter"
+    timeout_seconds: 10.0
+    max_retries: 2
+    backoff_factor_seconds: 0.5
+  mock:
+    default_radius_m: 1000.0
+
+# Facility categories and the OpenStreetMap tag used to look them up.
+# Every returned record must carry the category and its source (Rule 20).
+categories:
+  hospital:
+    label: "Hospital"
+    osm_tag: "amenity=hospital"
+  pharmacy:
+    label: "Pharmacy"
+    osm_tag: "amenity=pharmacy"
+  police:
+    label: "Police Station"
+    osm_tag: "amenity=police"
+  fuel:
+    label: "Petrol Pump"
+    osm_tag: "amenity=fuel"
+  hotel:
+    label: "Hotel"
+    osm_tag: "tourism=hotel"
+  restaurant:
+    label: "Restaurant"
+    osm_tag: "amenity=restaurant"
+
+search:
+  default_radius_m: 1000.0
+  max_radius_m: 5000.0
+  max_results_per_category: 10
+
+guardrails:
+  facilities_in_hazard_score: false  # Rule 11: MUST remain false
+  allows_paid_provider: false
+  secrets_file: ".env"               # Rule 13: any key loads only from local .env

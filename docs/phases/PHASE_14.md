@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 14: Permitted Imagery Acquisition Adapter
 
 > **Phase ID:** PHASE_14
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete
 > **Predecessor:** [`PHASE_13`](./PHASE_13.md) — Routing Provider Selection & Adapter
 > **Successor:** [`PHASE_15`](./PHASE_15.md) — Facilities Lookup Service
 > **Index:** [`README.md`](./README.md)
@@ -106,13 +106,13 @@ This resolves open decision TRD §18.1 #3 (permitted imagery source). The core g
 
 ## 7. Acceptance criteria
 
-- [ ] A permitted imagery source is approved and documented with terms.
-- [ ] Imagery adapter implemented behind the interface.
-- [ ] Provenance/timeliness recorded per image.
-- [ ] Unavailable/stale/unmatched handled as `unassessed` (never safe).
-- [ ] No imagery from unpermitted sources.
-- [ ] Tests execute with recorded results.
-- [ ] Completion report submitted and accepted.
+- [x] A permitted imagery source is approved and documented with terms.
+- [x] Imagery adapter implemented behind the interface.
+- [x] Provenance/timeliness recorded per image.
+- [x] Unavailable/stale/unmatched handled as `unassessed` (never safe).
+- [x] No imagery from unpermitted sources.
+- [x] Tests execute with recorded results.
+- [x] Completion report submitted and accepted.
 
 ---
 

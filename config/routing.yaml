@@ -1,0 +1,36 @@
+# SafeRoute AI — Routing Configuration
+# Phase ID: PHASE_13
+# Follows TRD §10, ARCHITECTURE §8, master_rules.md Rules 8, 10, 13, 17
+
+metadata:
+  version: "routing-v1"
+  date: "2026-10-13"
+  primary_provider: "osrm"
+  mock_provider: "mock"
+
+# Provider Connection Settings
+provider:
+  default_provider: "mock"       # Default provider for offline testing and local demo
+  timeout_seconds: 5.0
+  max_retries: 3
+  backoff_factor_seconds: 0.5
+  osrm:
+    base_url: "https://router.project-osrm.org"   # Public OSRM demo or local http://localhost:5000
+    profile: "driving"
+    overview: "full"
+    geometries: "geojson"
+    alternatives: true
+    steps: true
+
+# Segmentation Policy (TRD §10.1, PRD FR-R4)
+segmentation:
+  target_segment_length_m: 200.0   # Target segment granularity for imagery assessment
+  min_segment_length_m: 50.0       # Minimum segment length floor
+  max_segment_length_m: 500.0      # Maximum segment length ceiling
+  id_format: "seg-{route_id}-{seq:04d}"
+
+# Guardrails & Rules
+guardrails:
+  enforce_rule_10: true            # Never synthesize/pad routes to fixed count (Rule 10)
+  imagery_rights_granted: false    # Explicit guardrail: routing API does NOT grant imagery rights (Rule 8)
+  secrets_file: ".env"             # Any required API keys loaded only from local uncommitted .env (Rule 13)

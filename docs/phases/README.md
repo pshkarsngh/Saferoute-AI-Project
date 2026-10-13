@@ -51,8 +51,8 @@ Phases are executed **one at a time** and each must be verified before the next 
 | [PHASE_10](./PHASE_10.md) | Inference & Structured Detection Pipeline | Versioned inference module emitting structured detections | Complete |
 | [PHASE_11](./PHASE_11.md) | Hazard Aggregation & Severity Policy | Documented severity policy and aggregation service | Complete |
 | [PHASE_12](./PHASE_12.md) | Deterministic Risk Engine | Pure, unit-tested risk scoring function and config | Complete |
-| [PHASE_13](./PHASE_13.md) | Routing Provider Selection & Adapter | Approved provider and provider-independent route adapter | Not started |
-| [PHASE_14](./PHASE_14.md) | Permitted Imagery Acquisition Adapter | Imagery adapter limited to permitted sources | Not started |
+| [PHASE_13](./PHASE_13.md) | Routing Provider Selection & Adapter | Approved provider and provider-independent route adapter | Complete |
+| [PHASE_14](./PHASE_14.md) | Permitted Imagery Acquisition Adapter | Imagery adapter limited to permitted sources | Complete |
 | [PHASE_15](./PHASE_15.md) | Facilities Lookup Service | Facility service kept separate from the hazard score | Not started |
 | [PHASE_16](./PHASE_16.md) | Backend API & Persistence | FastAPI endpoints with status/error schemas and MySQL schema | Not started |
 | [PHASE_17](./PHASE_17.md) | Grounded LLM Explanation Layer | Schema-validated, grounded explanations with fallback | Not started |
