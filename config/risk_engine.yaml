@@ -1,0 +1,34 @@
+# SafeRoute AI — Deterministic Risk Engine Configuration
+# Phase ID: PHASE_12
+# Engine Version: risk-v1
+# Follows TRD §9, ARCHITECTURE §7, master_rules.md Rules 7, 9, 11, 12, 17
+
+metadata:
+  engine_version: "risk-v1"
+  model_version: "saferoute-yolo11-v1"
+  date: "2026-10-13"
+  description: "Pure deterministic risk engine computing segment and route hazard-safety scores."
+
+# Mathematical Formula Parameters: S_i = 100 * exp(-lambda * H_i)
+scoring:
+  lambda_decay: 0.10              # Exponential decay factor lambda (provisional baseline)
+  min_score: 0.0                  # Minimum score bound
+  max_score: 100.0                # Maximum score bound (perfect hazard-free road)
+  min_segment_length_km: 0.10     # 100 meters minimum segment normalization baseline
+  default_segment_length_m: 100.0 # Default segment length when unstated
+
+# Hazard Aggregation Definition (H_i)
+# H_i represents normalized hazard density: total severity sum per kilometer of road.
+# H_i = (sum of severities) / max(length_meters / 1000.0, min_segment_length_km)
+hazard_metric:
+  unit: "hazard_severity_per_km"
+  dedup_adjacent_segments: true   # Prevent double-counting boundary hazards
+  adjacent_boundary_iou: 0.50
+
+# Coverage & Safety Verdict Suppression (Rule 9)
+# Missing imagery is NEVER zero risk. Insufficient coverage suppresses 'safe' claims.
+coverage_policy:
+  min_coverage_threshold: 0.50    # Minimum fraction to consider assessment credible
+  full_coverage_threshold: 0.90   # Threshold for full 'assessed' status
+  suppress_insufficient_coverage: true
+  unassessed_score_placeholder: null  # Never assign 100.0 to unassessed road

@@ -1,0 +1,45 @@
+# Preprocessing Pipeline Configuration
+# SafeRoute AI — Preprocessing Version: preprocess-v1
+# Follows TRD §7, ARCHITECTURE §6, master_rules.md Rule 6
+
+pipeline_version: "preprocess-v1"
+
+# Validation thresholds
+validation:
+  min_width: 32
+  min_height: 32
+  min_channels: 3
+  max_channels: 3
+  supported_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".bmp"
+    - ".webp"
+
+# Preprocessing / Letterbox parameters
+preprocessing:
+  target_size: [640, 640]  # [width, height] consistent with standard YOLO11 imgsz
+  auto: false               # Minimum rectangle letterbox
+  scale_fill: false         # Stretch to fill (false = keep aspect ratio)
+  scale_up: true            # Allow upscaling smaller images to target_size
+  stride: 32                # Stride constraint for YOLO architecture
+  pad_color: [114, 114, 114] # Neutral grey fill (BGR)
+
+# Optional enhancements
+# NOTE: CLAHE is disabled by default per TRD §7.1 and Rule 6 until empirically measured.
+enhancements:
+  enable_clahe: false
+  clahe_clip_limit: 2.0
+  clahe_tile_grid_size: [8, 8]
+
+# Visualisation settings
+visualisation:
+  bbox_thickness: 2
+  font_scale: 0.5
+  text_thickness: 1
+  colors:
+    pothole: [0, 0, 255]     # Red (BGR)
+    crack: [0, 165, 255]     # Orange (BGR)
+    manhole: [255, 0, 0]     # Blue (BGR)
+    default: [0, 255, 0]     # Green (BGR)

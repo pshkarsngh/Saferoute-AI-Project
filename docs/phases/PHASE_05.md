@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 05: CUDA / GPU & Training-Readiness Verification
 
 > **Phase ID:** PHASE_05
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — approved and documented (see [`../reports/PHASE_05_report.md`](../reports/PHASE_05_report.md))
 > **Predecessor:** [`PHASE_04`](./PHASE_04.md) — Workspace Virtual Environment & Dependencies
 > **Successor:** [`PHASE_06`](./PHASE_06.md) — OpenCV Preprocessing & Image-Quality Pipeline
 > **Index:** [`README.md`](./README.md)
@@ -107,13 +107,13 @@ alternate plan is chosen (Rule 16, TRAINING_RULES §2 G11).
 
 ## 7. Acceptance criteria
 
-- [ ] CUDA availability is stated truthfully as `True`/`False` with raw output.
-- [ ] GPU name, capability, VRAM and driver are recorded.
-- [ ] RAM and disk figures are recorded.
-- [ ] A provisional settings envelope is recorded (clearly marked provisional).
-- [ ] Gate status for G11 and G12 is stated.
-- [ ] No training occurred.
-- [ ] Completion report submitted and accepted.
+- [x] CUDA availability is stated truthfully as `True`/`False` with raw output. *(Verified: `True`, Torch 2.13.0+cu130).*
+- [x] GPU name, capability, VRAM and driver are recorded. *(RTX 5050 Laptop GPU, compute capability 12.0, 8,123 MB VRAM, driver 616.64).*
+- [x] RAM and disk figures are recorded. *(15.26 GB RAM, ~1.39 GB free; 79.11 GB free disk on drive `D:`).*
+- [x] A provisional settings envelope is recorded (clearly marked provisional). *(Candidate `imgsz=640`, `batch=16`, AMP enabled, conservative workers).*
+- [x] Gate status for G11 and G12 is stated. *(G11 PASS, G12 PASS).*
+- [x] No training occurred. *(Compute-only tensor op and hardware audit performed).*
+- [x] Completion report submitted and accepted. *(Filed in `docs/reports/PHASE_05_report.md`).*
 
 ---
 
@@ -150,59 +150,70 @@ PHASE_08–PHASE_09.
 
 ---
 
-## 11. Completion report template
+## 11. Completion report
+
+> The formal completion report has been filed and recorded:
+> - Detailed record: [`docs/reports/PHASE_05_report.md`](../reports/PHASE_05_report.md)
 
 ```
 PHASE_05 — CUDA / GPU Verification Report
 =========================================
-Date (actual):           <YYYY-MM-DD>
-Interpreter:             <path>
+Date (actual):           2026-10-13
+Interpreter:             D:\New folder (3)\.venv\Scripts\python.exe
 
 1. Torch
-   - version:              <value>
-   - torch.version.cuda:   <value or None>
-   - cuda.is_available():  <True/False>
-   - build:                CUDA / CPU-only
+   - version:              2.13.0+cu130
+   - torch.version.cuda:   13.0
+   - cuda.is_available():  True
+   - build:                CUDA
 
 2. GPU
-   - device count:         <n>
-   - name:                 <value>
-   - compute capability:   <x.y>
-   - total VRAM:           <value>
-   - free VRAM:            <value>
+   - device count:         1
+   - name:                 NVIDIA GeForce RTX 5050 Laptop GPU
+   - compute capability:   12.0 (sm_120, 20 SMs)
+   - total VRAM:           8,123.44 MB (~8.0 GB)
+   - free VRAM:            7,070.00 MB (~6.90 GB at rest)
 
 3. Real execution test
-   - result:               <pass/fail + details>
+   - result:               PASS — 1024x1024 tensor allocated and multiplied on CUDA with successful cleanup
 
 4. nvidia-smi cross-check
-   - driver:               <value>
-   - CUDA UMD:             <value>
-   - free VRAM (smi):      <value>
+   - driver:               616.64
+   - CUDA UMD:             13.4
+   - free VRAM (smi):      ~6,612 MiB available (1539 MiB used by desktop processes)
 
 5. Ultralytics
-   - version:              <value>
-   - sees CUDA:            <yes/no>
+   - version:              8.4.163
+   - sees CUDA:            yes (Device 0: NVIDIA GeForce RTX 5050 Laptop GPU)
 
 6. Resources
-   - RAM total/free:       <value>
-   - Disk free (D:):       <value>
+   - RAM total/free:       15.26 GB / 1.39 GB
+   - Disk free (D:):       79.11 GB free (84,945,678,336 bytes)
 
 7. Provisional settings envelope (NOT final)
-   - imgsz candidate:      <value>
-   - batch candidate:      <value>
-   - AMP:                  <on/off>
-   - rationale:            <measured headroom>
+   - imgsz candidate:      640
+   - batch candidate:      16 (fallback to 8 if host memory tight)
+   - AMP:                  on (FP16)
+   - rationale:            8 GB VRAM provides solid headroom for YOLO11s/n at batch=16 with AMP
 
 8. Gate status
-   - G11 GPU/CUDA:  PASS / FAIL
-   - G12 resources: PASS / FAIL
+   - G11 GPU/CUDA:  PASS
+   - G12 resources: PASS
 
 9. Validation results
-   V1 <pass/fail + evidence> ... V8 <pass/fail + evidence>
+   V1 PASS (workspace .venv interpreter verified)
+   V2 PASS (torch.cuda.is_available() == True)
+   V3 PASS (RTX 5050 Laptop GPU identified and recorded)
+   V4 PASS (GPU tensor op executed successfully)
+   V5 PASS (VRAM recorded from torch and nvidia-smi)
+   V6 PASS (System RAM and workspace drive D: recorded)
+   V7 PASS (Ultralytics verified seeing CUDA device)
+   V8 PASS (No training executed)
 
 10. Limitations / honesty note
-    <observed constraints>
+    Host physical RAM free space is ~1.4 GB; training workers should be kept low (workers=2-4)
+    and non-essential desktop apps closed prior to full training in PHASE_08.
 
-11. Result: COMPLETE / BLOCKED / STOPPED
-    Next phase authorised? YES / NO (awaiting approval)
+11. Result: COMPLETE
+    Next phase authorised? NO (awaiting user approval for PHASE_06)
 ```

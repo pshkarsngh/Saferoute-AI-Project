@@ -1,0 +1,47 @@
+# SafeRoute AI — Hazard Severity Policy & Aggregation Configuration
+# Phase ID: PHASE_11
+# Policy Version: severity-v1
+# Follows TRD §8, ARCHITECTURE §7, master_rules.md Rules 5, 7, 9, 12
+
+metadata:
+  policy_version: "severity-v1"
+  model_version: "saferoute-yolo11-v1"
+  date: "2026-10-13"
+  description: "Deterministic, config-driven severity assignment and hazard aggregation policy."
+
+# Confidence & Filtering Thresholds
+thresholds:
+  confidence_threshold: 0.25      # Calibrated in Phase 09 evaluation
+  dedup_iou_threshold: 0.45       # Spatial IoU de-duplication overlap threshold
+  min_bbox_area_norm: 0.0001      # Minimum valid normalized bounding box area
+  max_bbox_area_norm: 0.30        # Maximum credible single hazard normalized area
+
+# Base Severity Table (Scale: 1.0 [Minor] to 5.0 [Critical])
+# Rationale:
+# - pothole: Direct mechanical shock, tire puncture risk, loss of vehicle stability.
+# - crack: Surface defect causing minor traction degradation, precursor to road decay.
+base_severities:
+  pothole: 3.0
+  crack: 1.5
+  unsupported: 1.0
+
+# Optional Severity Modulation Parameters
+# Formula:
+#   area_norm = clamp(bbox_width_norm * bbox_height_norm, 0, max_bbox_area_norm)
+#   area_factor = 1.0 + beta_area * (area_norm / max_bbox_area_norm)
+#   conf_factor = 1.0 + alpha_confidence * (confidence - confidence_threshold)
+#   severity = clamp(base_severity * area_factor * conf_factor, min_severity, max_severity)
+modulation:
+  enabled: true
+  alpha_confidence: 0.25          # Confidence scaling factor
+  beta_area: 0.50                 # Relative visual area scaling factor
+  min_severity: 1.0               # Minimum clamped severity bound
+  max_severity: 5.0               # Maximum clamped severity bound
+
+# Segment Coverage & Assessment Status Rules (Rule 9)
+# Missing imagery is never zero risk; unassessed segments are flagged explicitly.
+status_rules:
+  full_coverage_threshold: 1.0    # 100% images processed -> assessed
+  partial_coverage_min: 0.01      # >0% but <100% -> partially_assessed
+  unassessed_status: "unassessed" # 0% images available -> unassessed
+  failed_status: "failed"         # Decode/pipeline crash -> failed

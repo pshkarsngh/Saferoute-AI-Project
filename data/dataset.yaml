@@ -1,0 +1,19 @@
+# SafeRoute AI — YOLO11 Dataset Configuration
+# Phase ID: PHASE_07 / PHASE_08
+# Follows TRD §5.3, TRAINING_RULES.md §2 G13, and master_rules.md Rules 1, 4, 5, 15
+
+# Dataset root directory
+path: D:/New folder (3)/data/pothole_crack_manhole/data
+
+# Split files
+train: D:/New folder (3)/data/splits/train.txt
+val: D:/New folder (3)/data/splits/val.txt
+test: D:/New folder (3)/data/splits/test.txt
+
+# Class mapping (Verified from PHASE_03 audit and confirmed user decision 2026-10-12)
+# Supported classes: 0: pothole, 1: crack
+# Class ID 2 (manhole) is designated 'unsupported' and excluded from model target outputs,
+# preserved without silent relabelling per Rule 5 and Rule 15.
+names:
+  0: pothole
+  1: crack

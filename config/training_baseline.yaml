@@ -1,0 +1,59 @@
+# SafeRoute AI — YOLO11 Baseline Training Configuration (FROZEN)
+# Phase ID: PHASE_07
+# Model Version Identifier: saferoute-yolo11-v1
+# Follows TRD §5, ARCHITECTURE §4, TRAINING_RULES.md §4, master_rules.md Rules 1, 4, 16
+
+# Experiment Metadata
+experiment:
+  name: "saferoute-yolo11-v1-baseline"
+  model_version: "saferoute-yolo11-v1"
+  phase_id: "PHASE_07"
+  date_frozen: "2026-10-13"
+
+# Model Selection
+model:
+  variant: "yolo11n"                   # Smallest/fastest baseline (nano)
+  pretrained_weights: "yolo11n.pt"     # Official Ultralytics pretrained weights
+  checkpoint_source: "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt"
+  licence: "AGPL-3.0 / Enterprise"
+  download_status: "pending_phase08_approval" # Not downloaded in PHASE_07
+
+# Dataset Reference
+dataset:
+  config_path: "data/dataset.yaml"
+  num_classes: 2
+  classes:
+    0: "pothole"
+    1: "crack"
+  unsupported_classes:
+    2: "manhole"                       # Excluded, not relabelled
+
+# Hyperparameters (Provisional based on measured PHASE_05 headroom)
+hyperparameters:
+  imgsz: 640                           # Standard input dimension (matches letterbox)
+  batch: 16                            # Sized for 8 GB VRAM (RTX 5050 Laptop GPU)
+  epochs: 50                           # Baseline training ceiling
+  patience: 10                         # Early stopping patience
+  optimizer: "auto"                    # AdamW / SGD selected automatically by Ultralytics
+  lr0: 0.01                            # Initial learning rate
+  lrf: 0.01                            # Final learning rate fraction
+  momentum: 0.937
+  weight_decay: 0.0005
+  warmup_epochs: 3.0
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+  box: 7.5                             # Box loss gain
+  cls: 0.5                             # Class loss gain
+  dfl: 1.5                             # DFL loss gain
+  amp: true                            # Mixed precision FP16 (tested on CUDA compute 12.0)
+  seed: 42                             # Fixed seed for reproducibility
+  deterministic: true
+  workers: 2                           # Conservative worker count to preserve ~1.4 GB free host RAM
+  device: 0                            # CUDA device index 0 (RTX 5050 Laptop GPU)
+
+# Output & Logging Paths (All workspace-isolated per Rule 1)
+paths:
+  project: "models/training"
+  name: "saferoute-yolo11-v1"
+  log_dir: "logs/training/saferoute-yolo11-v1"
+  save_period: 5                       # Save checkpoint every 5 epochs

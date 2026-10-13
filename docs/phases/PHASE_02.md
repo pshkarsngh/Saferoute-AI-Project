@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 02: Dataset Acquisition & Licence Approval Gate
 
 > **Phase ID:** PHASE_02
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — approved and documented (see [`../reports/PHASE_02_report.md`](../reports/PHASE_02_report.md))
 > **Predecessor:** [`PHASE_01`](./PHASE_01.md) — Workspace & Environment Audit
 > **Successor:** [`PHASE_03`](./PHASE_03.md) — Dataset Integrity, Class-Mapping & Split Audit
 > **Index:** [`README.md`](./README.md)
@@ -104,14 +104,14 @@ remains blocked until G1 and G2 pass (§PHASE_07 review).
 
 ## 7. Acceptance criteria
 
-- [ ] The dataset licence is recorded and **permits** the intended use, or the dataset is
-      rejected and an alternative sought.
-- [ ] The dataset location is confirmed compliant with Rule 1, with evidence.
-- [ ] Image and annotation counts are recorded and consistent with the source's claims (any
-      mismatch noted).
-- [ ] A dataset identity (name, source, version, checksum/manifest) is recorded.
-- [ ] No file was modified and no unapproved download occurred.
-- [ ] Completion report submitted and accepted.
+- [x] The dataset licence is recorded and **permits** the intended use, or the dataset is
+      rejected and an alternative sought. *(Creative Commons Attribution 4.0 International / CC BY 4.0 approved by user; permits derivative ML training).*
+- [x] The dataset location is confirmed compliant with Rule 1, with evidence. *(Located at `D:\New folder (3)\data\pothole_crack_manhole\data\`).*
+- [x] Image and annotation counts are recorded and consistent with the source's claims (any
+      mismatch noted). *(2,009 images, 2,009 polygon labels, 2,009 labels-YOLO, 4,737 COCO annotations).*
+- [x] A dataset identity (name, source, version, checksum/manifest) is recorded. *(Zenodo concept 17834372 / record 18528034; archive MD5 & SHA256 recorded).*
+- [x] No file was modified and no unapproved download occurred. *(Audited strictly read-only; no modifications).*
+- [x] Completion report submitted and accepted. *(Filed in `docs/reports/PHASE_02_report.md` & `docs/reports/PHASE_02_completion_report.md`; approved).*
 
 ---
 
@@ -148,53 +148,67 @@ No metrics may be reported here.
 
 ---
 
-## 11. Completion report template
+## 11. Completion report
+
+> The formal completion report has been filed, accepted, and recorded:
+> - Full record: [`docs/reports/PHASE_02_report.md`](../reports/PHASE_02_report.md)
+> - Summary report: [`docs/reports/PHASE_02_completion_report.md`](../reports/PHASE_02_completion_report.md)
 
 ```
 PHASE_02 — Completion Report
 ============================
-Date (actual):          <YYYY-MM-DD>
-Approval reference:     <user approval of dataset + licence>
+Date (actual):          2026-10-12
+Approval reference:     Project owner explicit approval recorded 2026-10-12 (docs/reports/PHASE_02_report.md § A)
 
 1. Dataset identity
-   - Name:               <name>
-   - Source / URL:       <source>
-   - Version / date:     <version>
-   - Retrieval date:     <YYYY-MM-DD>
+   - Name:               Road Damage Dataset: Potholes, Cracks, and Manholes
+   - Source / URL:       Zenodo (Record 18528034 / Concept 10.5281/zenodo.17834372)
+   - Version / date:     2026-02-08, revision 5 (bundled README cites DOI 10.5281/zenodo.17834373)
+   - Retrieval date:     Local archive timestamp 2026-10-11 22:17:52
 
 2. Licence & provenance
-   - Licence:            <type + version>
-   - Permitted use:      <stated>
-   - Restrictions:       <attribution / non-commercial / redistribution>
-   - Training permitted? <yes/no/unclear>
-   - Key excerpts:       <quotes>
+   - Licence:            Creative Commons Attribution 4.0 International (CC BY 4.0)
+   - Permitted use:      Commercial and non-commercial research, sharing, and adaptation with attribution
+   - Restrictions:       Attribution required; preserve copyright notice; no additional legal/tech restrictions
+   - Training permitted? Yes (CC BY 4.0 permits derivative works including ML training)
+   - Key excerpts:       "You are free to: Share — copy and redistribute the material in any medium or format; Adapt — remix, transform, and build upon the material for any purpose, even commercially."
 
 3. Location
-   - Path:               <absolute path>
-   - Inside workspace?   <yes / authorised-elsewhere>
-   - Authorisation ref:  <if elsewhere>
+   - Path:               D:\New folder (3)\data\pothole_crack_manhole\data\
+   - Inside workspace?   Yes (Rule 1 compliant)
+   - Authorisation ref:  Workspace-local (no external authorization needed)
 
 4. Contents (as found)
-   - Images:             <count>
-   - Annotation files:   <count>
-   - Declared format:    <YOLO/COCO/VOC/other>
-   - Declared classes:   <list>
-   - Total size:         <size>
-   - Checksum/manifest:  <value or "not computed + reason">
+   - Images:             2,009 JPG files
+   - Annotation files:   2,009 polygon labels, 2,009 YOLO-format labels, 1 annotations_coco.json (4,737 annotations)
+   - Declared format:    YOLO axis-aligned bbox + polygon + COCO JSON
+   - Declared classes:   0=Pothole, 1=Crack, 2=Manhole
+   - Total size:         194,786,682 bytes (~185.76 MiB extracted); data.zip 194,163,315 bytes (~185.17 MiB)
+   - Checksum/manifest:  data.zip MD5: 317862054545467FF00BE611DB8FF07E | SHA256: C7B7247C611EFA0A12EB8B998583DA496F90C9B4859E9E1DE2C1B06ADBB80CEF
 
 5. Risks noted
-   <list>
+   - Stale DOI in bundled README (17834373) vs current Zenodo record (18528034).
+   - Class scope mismatch: SafeRoute targets 7 hazard categories; dataset provides 3 (Pothole, Crack, Manhole). Class boundary must be preserved without silent relabelling.
+   - Manhole class inclusion requires downstream handling policy.
 
 6. Validation results
-   V1 <pass/fail + evidence> ... V8 <pass/fail + evidence>
+   V1 PASS (CC BY 4.0 documented)
+   V2 PASS (Provenance and Zenodo record captured)
+   V3 PASS (Location verified inside workspace)
+   V4 PASS (2,009 images and annotations verified)
+   V5 PASS (YOLO format confirmed ready)
+   V6 PASS (Archive size and SHA256/MD5 recorded)
+   V7 PASS (Risks documented)
+   V8 PASS (Read-only, no modifications or unapproved downloads)
 
 7. Gate status
-   - G1 provenance & licence: PASS / FAIL / PARTIAL
-   - G2 location:            PASS / FAIL
+   - G1 provenance & licence: PASS (CC BY 4.0 approved by user)
+   - G2 location:            PASS (Workspace-local verified)
 
 8. Limitations / honesty note
-   <unverified aspects; nothing about cleanliness asserted>
+   - Cleanliness, balance, and annotation accuracy are not asserted here; to be evaluated in PHASE_03.
+   - External licence attribution verified against Zenodo record 18528034.
 
-9. Result: COMPLETE / BLOCKED / STOPPED
-   Next phase authorised? YES / NO (awaiting approval)
+9. Result: COMPLETE
+   Next phase authorised? Awaiting separate user approval for PHASE_03.
 ```

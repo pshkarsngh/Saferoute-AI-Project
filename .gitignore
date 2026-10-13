@@ -1,7 +1,12 @@
 # Secrets & data
 .env
-# Large dataset archive (keep only the extracted data/ folder)
-data/raw/data.zip
+
+# Large dataset archive & caches
+data/raw/
+data/**/*.cache
+!data/dataset.yaml
+!data/splits/
+!data/splits/*
 
 # Python
 __pycache__/
@@ -17,8 +22,11 @@ Thumbs.db
 .vscode/
 .idea/
 
-# PHASE_04: workspace-local environment & generated artifacts
+# Workspace-local generated artifacts & models
 models/
 logs/
-data/
 .ultralytics/
+weights/
+*.pt
+*.onnx
+*.engine

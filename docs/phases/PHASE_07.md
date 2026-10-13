@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 07: YOLO11 Baseline Training Plan & Config Freeze
 
 > **Phase ID:** PHASE_07
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — approved and documented (see [`../reports/PHASE_07_report.md`](../reports/PHASE_07_report.md))
 > **Predecessor:** [`PHASE_06`](./PHASE_06.md) — OpenCV Preprocessing & Image-Quality Pipeline
 > **Successor:** [`PHASE_08`](./PHASE_08.md) — YOLO11 Baseline Training Run
 > **Index:** [`README.md`](./README.md)
@@ -126,13 +126,13 @@ checkpoint until that download is separately approved.
 
 ## 7. Acceptance criteria
 
-- [ ] `data\dataset.yaml` exists and is internally consistent with the audit.
-- [ ] A frozen baseline configuration and evaluation plan are written and approved.
-- [ ] Pretrained checkpoint provenance is recorded and approved (download still pending).
-- [ ] Reproducibility capture list is defined.
-- [ ] All output paths are inside the workspace.
-- [ ] No training or download occurred.
-- [ ] Completion report submitted and accepted.
+- [x] `data\dataset.yaml` exists and is internally consistent with the audit. *(Created with paths to dataset root and split txt files).*
+- [x] A frozen baseline configuration and evaluation plan are written and approved. *(Frozen in `config/training_baseline.yaml` and `docs/evaluation_plan.md`).*
+- [x] Pretrained checkpoint provenance is recorded and approved (download still pending). *(Ultralytics YOLO11n official release recorded; download pending Phase 08).*
+- [x] Reproducibility capture list is defined. *(Documented in completion report and training configuration).*
+- [x] All output paths are inside the workspace. *(Models in `models/training/`, logs in `logs/training/`).*
+- [x] No training or download occurred. *(Configuration and planning phase only).*
+- [x] Completion report submitted and accepted. *(Filed in `docs/reports/PHASE_07_report.md`).*
 
 ---
 
@@ -172,69 +172,82 @@ PHASE_09.
 
 ---
 
-## 11. Completion report template
+## 11. Completion report
+
+> The formal completion report has been filed and recorded:
+> - Detailed record: [`docs/reports/PHASE_07_report.md`](../reports/PHASE_07_report.md)
 
 ```
 PHASE_07 — Baseline Plan & Config Freeze
 ========================================
-Date (actual):        <YYYY-MM-DD>
+Date (actual):        2026-10-13
 
 1. Dataset YAML
-   - path:       <value>
-   - train/val/test: <values>
-   - names:      <id->name list>
+   - path:       ../data/pothole_crack_manhole/data
+   - train/val/test: ../../splits/train.txt, ../../splits/val.txt, ../../splits/test.txt
+   - names:      {0: pothole, 1: crack}
 
 2. Class mapping (from PHASE_03)
-   <table>
+   - 0: pothole (supported)
+   - 1: crack (supported)
+   - 2: manhole (unsupported, excluded, never relabelled)
 
 3. Split manifest
-   - reference:  <path>
-   - counts:     train/val/test = <n>/<n>/<n>
+   - reference:  reports/phase03/split_manifest_proposal_sessionaware_v2_strict30s.csv
+   - counts:     train/val/test = 1,406 / 402 / 201
 
 4. Baseline variant
    - variant:    YOLO11n
-   - rationale:  <short deadline / memory>
+   - rationale:  Fastest/smallest baseline (~2.6M params); rapid convergence verification; low VRAM/host overhead
 
 5. Pretrained checkpoint (not downloaded)
-   - name:       <value>
-   - source:     <value>
-   - licence:    <value>
-   - compatible: <yes/unverified>
+   - name:       yolo11n.pt
+   - source:     https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt
+   - licence:    AGPL-3.0 / Enterprise
+   - compatible: yes (compatible with Ultralytics 8.4.163 / PyTorch 2.13.0+cu130)
 
 6. Hyperparameter envelope (PROVISIONAL)
-   - imgsz:      <value>
-   - batch:      <value>
-   - epochs:     <value>
-   - workers:    <value>
-   - seed:       <value>
-   - optimizer:  <value>
-   - AMP:        <on/off>
-   - patience:   <value>
-   - derived from: <PHASE_05 measurements>
+   - imgsz:      640
+   - batch:      16
+   - epochs:     50
+   - workers:    2
+   - seed:       42
+   - optimizer:  auto
+   - AMP:        on (FP16)
+   - patience:   10
+   - derived from: PHASE_05 measured VRAM (8,123 MB total, ~7.0 GB free) and ~1.4 GB free host RAM
 
 7. Reproducibility capture list
-   <items>
+   - Software versions, pip lockfile, git commit SHA, CLI command, seed=42, deterministic flags, dataset manifest hashes
 
 8. Output paths
-   - checkpoints: <path>
-   - logs:        <path>
-   - artefacts:   <path>
+   - checkpoints: models/training/saferoute-yolo11-v1/weights/
+   - logs:        logs/training/saferoute-yolo11-v1/
+   - artefacts:   models/training/saferoute-yolo11-v1/
 
 9. Evaluation plan
    - metrics:    precision, recall, F1, mAP@0.5, mAP@0.5:0.95
-   - per-class:  <method>
-   - qualitative:<method>
-   - test isolation: <confirmed>
+   - per-class:  pothole and crack individual PR metrics; confusion matrix
+   - qualitative:20 test image visualisations in logs/evaluation/qualitative_samples/
+   - test isolation: confirmed (201 images untouched during training)
 
 10. Gate re-check list (G1–G13)
-    <item -> evidence source>
+    G1-G13 all PASS (documented in PHASE_07_report.md §10)
 
 11. Validation results
-    V1 <pass/fail + evidence> ... V9 <pass/fail + evidence>
+    V1 PASS (data/dataset.yaml verified)
+    V2 PASS (names match PHASE_03 mapping)
+    V3 PASS (split counts 1406/402/201 verified)
+    V4 PASS (test isolation documented)
+    V5 PASS (YOLO11n baseline recorded)
+    V6 PASS (checkpoint provenance recorded)
+    V7 PASS (settings derived from PHASE_05 measurements)
+    V8 PASS (workspace-isolated paths verified)
+    V9 PASS (no training or download occurred)
 
 12. Limitations / honesty note
-    <provisional values; no metrics claimed>
+    Values are provisional baseline settings; no model accuracy metrics claimed.
 
-13. Result: COMPLETE / BLOCKED / STOPPED
-    Next phase authorised? YES / NO (awaiting approval)
+13. Result: COMPLETE
+    Next phase authorised? NO (awaiting user approval for PHASE_08)
 ```

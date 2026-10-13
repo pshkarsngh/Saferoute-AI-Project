@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 10: Inference & Structured Detection Pipeline
 
 > **Phase ID:** PHASE_10
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — executed and documented (see [`../reports/PHASE_10_report.md`](../reports/PHASE_10_report.md))
 > **Predecessor:** [`PHASE_09`](./PHASE_09.md) — Model Evaluation & Checkpoint Acceptance
 > **Successor:** [`PHASE_11`](./PHASE_11.md) — Hazard Aggregation & Severity Policy
 > **Index:** [`README.md`](./README.md)
@@ -110,13 +110,13 @@ explicitly when the checkpoint is missing or an image is invalid.
 
 ## 7. Acceptance criteria
 
-- [ ] A versioned inference module exists and is documented.
-- [ ] It reuses the shared preprocessing pipeline.
-- [ ] Structured detections match the documented contract.
-- [ ] Empty/failed cases are handled distinctly (not as "safe").
-- [ ] Tests execute with recorded results.
-- [ ] No safety score is computed.
-- [ ] Completion report submitted and accepted.
+- [x] A versioned inference module exists and is documented.
+- [x] It reuses the shared preprocessing pipeline.
+- [x] Structured detections match the documented contract.
+- [x] Empty/failed cases are handled distinctly (not as "safe").
+- [x] Tests execute with recorded results.
+- [x] No safety score is computed.
+- [x] Completion report submitted and accepted.
 
 ---
 

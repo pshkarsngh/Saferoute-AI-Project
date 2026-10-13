@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 09: Model Evaluation & Checkpoint Acceptance
 
 > **Phase ID:** PHASE_09
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — executed and documented (see [`../reports/PHASE_09_report.md`](../reports/PHASE_09_report.md))
 > **Predecessor:** [`PHASE_08`](./PHASE_08.md) — YOLO11 Baseline Training Run
 > **Successor:** [`PHASE_10`](./PHASE_10.md) — Inference & Structured Detection Pipeline
 > **Index:** [`README.md`](./README.md)
@@ -113,13 +113,13 @@ extrapolated or fabricated.
 
 ## 7. Acceptance criteria
 
-- [ ] Validation and test metrics measured and recorded with commands.
-- [ ] Per-class results and error analysis recorded.
-- [ ] Class imbalance and weak classes disclosed.
-- [ ] An explicit accept/retain/reject/rollback decision is recorded with rationale.
-- [ ] Limitations stated plainly (no real-world safety claim).
-- [ ] Test set used once only.
-- [ ] Completion report submitted and accepted.
+- [x] Validation and test metrics measured and recorded with commands.
+- [x] Per-class results and error analysis recorded.
+- [x] Class imbalance and weak classes disclosed.
+- [x] An explicit accept/retain/reject/rollback decision is recorded with rationale.
+- [x] Limitations stated plainly (no real-world safety claim).
+- [x] Test set used once only.
+- [x] Completion report submitted and accepted.
 
 ---
 

@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 11: Hazard Aggregation & Severity Policy
 
 > **Phase ID:** PHASE_11
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — executed and documented (see [`../reports/PHASE_11_report.md`](../reports/PHASE_11_report.md))
 > **Predecessor:** [`PHASE_10`](./PHASE_10.md) — Inference & Structured Detection Pipeline
 > **Successor:** [`PHASE_12`](./PHASE_12.md) — Deterministic Risk Engine
 > **Index:** [`README.md`](./README.md)
@@ -108,13 +108,13 @@ risk engine consumes in PHASE_12; it does **not** compute a safety score itself.
 
 ## 7. Acceptance criteria
 
-- [ ] `config\hazard_severity.yaml` exists with a documented, approved policy.
-- [ ] Confidence threshold and de-duplication rule are documented and configurable.
-- [ ] Aggregation produces hazard records conforming to the documented contract.
-- [ ] Statuses propagate correctly, including "missing ≠ safe".
-- [ ] Tests execute with recorded results.
-- [ ] No safety score is computed; no LLM involved.
-- [ ] Completion report submitted and accepted.
+- [x] `config\hazard_severity.yaml` exists with a documented, approved policy.
+- [x] Confidence threshold and de-duplication rule are documented and configurable.
+- [x] Aggregation produces hazard records conforming to the documented contract.
+- [x] Statuses propagate correctly, including "missing ≠ safe".
+- [x] Tests execute with recorded results.
+- [x] No safety score is computed; no LLM involved.
+- [x] Completion report submitted and accepted.
 
 ---
 

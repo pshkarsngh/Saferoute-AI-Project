@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 12: Deterministic Risk Engine
 
 > **Phase ID:** PHASE_12
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete
 > **Predecessor:** [`PHASE_11`](./PHASE_11.md) — Hazard Aggregation & Severity Policy
 > **Successor:** [`PHASE_13`](./PHASE_13.md) — Routing Provider Selection & Adapter
 > **Index:** [`README.md`](./README.md)
@@ -117,13 +117,13 @@ documented, approved definition.
 
 ## 7. Acceptance criteria
 
-- [ ] Documented `H_i`, `λ`, normalisation and route aggregation exist.
-- [ ] A pure engine computes segment and route scores with coverage + status.
-- [ ] Determinism proven by test.
-- [ ] Missing/insufficient coverage never yields a "safe" verdict.
-- [ ] Config hash recorded with scores.
-- [ ] No LLM or facility input to the score.
-- [ ] Completion report submitted and accepted.
+- [x] Documented `H_i`, `λ`, normalisation and route aggregation exist.
+- [x] A pure engine computes segment and route scores with coverage + status.
+- [x] Determinism proven by test.
+- [x] Missing/insufficient coverage never yields a "safe" verdict.
+- [x] Config hash recorded with scores.
+- [x] No LLM or facility input to the score.
+- [x] Completion report submitted and accepted.
 
 ---
 

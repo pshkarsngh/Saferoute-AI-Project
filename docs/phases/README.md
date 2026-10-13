@@ -38,19 +38,19 @@ Phases are executed **one at a time** and each must be verified before the next 
 
 | Phase | Title | Primary output | Status |
 |---|---|---|---|
-| [PHASE_00](./PHASE_00.md) | Documentation Baseline & Phase Governance | Frozen, approved governing document set and phase framework | Not started |
-| [PHASE_01](./PHASE_01.md) | Workspace & Environment Audit (read-only) | Read-only environment/hardware audit report | Not started |
-| [PHASE_02](./PHASE_02.md) | Dataset Acquisition & Licence Approval Gate | Documented dataset source, licence and provenance | Not started |
-| [PHASE_03](./PHASE_03.md) | Dataset Integrity, Class-Mapping & Split Audit | Dataset audit report and verified class/split manifest | Not started |
-| [PHASE_04](./PHASE_04.md) | Workspace Virtual Environment & Dependencies | Workspace-local `.venv` with pinned dependencies | Not started |
-| [PHASE_05](./PHASE_05.md) | CUDA / GPU & Training-Readiness Verification | Verified GPU/CUDA/resource report | Not started |
-| [PHASE_06](./PHASE_06.md) | OpenCV Preprocessing & Image-Quality Pipeline | Single versioned preprocessing/validation module | Not started |
-| [PHASE_07](./PHASE_07.md) | YOLO11 Baseline Training Plan & Config Freeze | `dataset.yaml`, frozen baseline config and evaluation plan | Not started |
-| [PHASE_08](./PHASE_08.md) | YOLO11 Baseline Training Run | Trained baseline checkpoints + run record | Not started |
-| [PHASE_09](./PHASE_09.md) | Model Evaluation & Checkpoint Acceptance | Measured metrics and accept/reject/rollback decision | Not started |
-| [PHASE_10](./PHASE_10.md) | Inference & Structured Detection Pipeline | Versioned inference module emitting structured detections | Not started |
-| [PHASE_11](./PHASE_11.md) | Hazard Aggregation & Severity Policy | Documented severity policy and aggregation service | Not started |
-| [PHASE_12](./PHASE_12.md) | Deterministic Risk Engine | Pure, unit-tested risk scoring function and config | Not started |
+| [PHASE_00](./PHASE_00.md) | Documentation Baseline & Phase Governance | Frozen, approved governing document set and phase framework | Complete |
+| [PHASE_01](./PHASE_01.md) | Workspace & Environment Audit (read-only) | Read-only environment/hardware audit report | Complete |
+| [PHASE_02](./PHASE_02.md) | Dataset Acquisition & Licence Approval Gate | Documented dataset source, licence and provenance | Complete |
+| [PHASE_03](./PHASE_03.md) | Dataset Integrity, Class-Mapping & Split Audit | Dataset audit report and verified class/split manifest | Complete |
+| [PHASE_04](./PHASE_04.md) | Workspace Virtual Environment & Dependencies | Workspace-local `.venv` with pinned dependencies | Complete |
+| [PHASE_05](./PHASE_05.md) | CUDA / GPU & Training-Readiness Verification | Verified GPU/CUDA/resource report | Complete |
+| [PHASE_06](./PHASE_06.md) | OpenCV Preprocessing & Image-Quality Pipeline | Single versioned preprocessing/validation module | Complete |
+| [PHASE_07](./PHASE_07.md) | YOLO11 Baseline Training Plan & Config Freeze | `dataset.yaml`, frozen baseline config and evaluation plan | Complete |
+| [PHASE_08](./PHASE_08.md) | YOLO11 Baseline Training Run | Trained baseline checkpoints + run record | Complete |
+| [PHASE_09](./PHASE_09.md) | Model Evaluation & Checkpoint Acceptance | Measured metrics and accept/reject/rollback decision | Complete |
+| [PHASE_10](./PHASE_10.md) | Inference & Structured Detection Pipeline | Versioned inference module emitting structured detections | Complete |
+| [PHASE_11](./PHASE_11.md) | Hazard Aggregation & Severity Policy | Documented severity policy and aggregation service | Complete |
+| [PHASE_12](./PHASE_12.md) | Deterministic Risk Engine | Pure, unit-tested risk scoring function and config | Complete |
 | [PHASE_13](./PHASE_13.md) | Routing Provider Selection & Adapter | Approved provider and provider-independent route adapter | Not started |
 | [PHASE_14](./PHASE_14.md) | Permitted Imagery Acquisition Adapter | Imagery adapter limited to permitted sources | Not started |
 | [PHASE_15](./PHASE_15.md) | Facilities Lookup Service | Facility service kept separate from the hazard score | Not started |

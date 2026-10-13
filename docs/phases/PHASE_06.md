@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 06: OpenCV Preprocessing & Image-Quality Pipeline
 
 > **Phase ID:** PHASE_06
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — approved and documented (see [`../reports/PHASE_06_report.md`](../reports/PHASE_06_report.md))
 > **Predecessor:** [`PHASE_05`](./PHASE_05.md) — CUDA / GPU & Training-Readiness Verification
 > **Successor:** [`PHASE_07`](./PHASE_07.md) — YOLO11 Baseline Training Plan & Config Freeze
 > **Index:** [`README.md`](./README.md)
@@ -109,13 +109,13 @@ them as clean, and must never overwrite source images.
 
 ## 7. Acceptance criteria
 
-- [ ] A single versioned preprocessing/validation module exists and is documented.
-- [ ] Failure modes are classified and never treated as clean.
-- [ ] Determinism test passes with recorded output.
-- [ ] Original images verified unchanged.
-- [ ] Unit tests execute and their actual results are recorded.
-- [ ] No dataset file modified; no unapproved dependency added.
-- [ ] Completion report submitted and accepted.
+- [x] A single versioned preprocessing/validation module exists and is documented. *(Implemented in `src.preprocessing` as `preprocess-v1` with `README.md`).*
+- [x] Failure modes are classified and never treated as clean. *(Categorized explicitly as `empty`, `unreadable`, `corrupt`, `unsupported`, `too_small`).*
+- [x] Determinism test passes with recorded output. *(Bit-identical array verification confirmed via unit test).*
+- [x] Original images verified unchanged. *(Input arrays and file hashes verified unaltered).*
+- [x] Unit tests execute and their actual results are recorded. *(11/11 tests passing; recorded in report).*
+- [x] No dataset file modified; no unapproved dependency added. *(Verified safe workspace operations).*
+- [x] Completion report submitted and accepted. *(Filed in `docs/reports/PHASE_06_report.md`).*
 
 ---
 
@@ -151,43 +151,58 @@ quality. Optional enhancements are **off** unless separately justified by measur
 
 ---
 
-## 11. Completion report template
+## 11. Completion report
+
+> The formal completion report has been filed and recorded:
+> - Detailed record: [`docs/reports/PHASE_06_report.md`](../reports/PHASE_06_report.md)
 
 ```
 PHASE_06 — Completion Report
 ============================
-Date (actual):        <YYYY-MM-DD>
-Pipeline version:     <e.g. preprocess-v1>
+Date (actual):        2026-10-13
+Pipeline version:     preprocess-v1
 
 1. Files created
-   - module:   <path>
-   - tests:    <path>
-   - docs:     <path>
-   - config:   <path>
+   - module:   src\preprocessing\pipeline.py, src\preprocessing\__init__.py
+   - tests:    tests\unit\test_preprocessing.py, tests\__init__.py, tests\unit\__init__.py
+   - docs:     src\preprocessing\README.md
+   - config:   config\preprocessing.yaml
 
 2. Transforms implemented (with rationale)
-   - <transform> : <why / when>
+   - validate_image : Robust rejection of empty, unreadable, corrupt, unsupported, and too-small images
+   - letterbox : Preserve true physical aspect ratio of road hazards with neutral grey padding (640x640)
+   - prepare_inference_input : Normalization (RGB, CHW, float32, [0.0, 1.0]) for YOLO11 neural network input
+   - visualise : Non-destructive drawing of bounding boxes on canvas copies
+   - CLAHE : Disabled by default until empirical validation
 
 3. Failure modes handled
-   - corrupt / empty / unreadable / unsupported / too_small / low_quality: <yes/no>
+   - corrupt / empty / unreadable / unsupported / too_small / low_quality: yes
 
 4. Test results (actual)
-   - command:            <exact>
-   - passed/failed:      <n>/<n>
-   - failures:           <details or none>
+   - command:            & ".venv\Scripts\python.exe" -m unittest tests.unit.test_preprocessing -v
+   - passed/failed:      11 / 0
+   - failures:           none
 
 5. Determinism evidence
-   - <hash/comparison result>
+   - Bit-identical array match verified across consecutive executions
 
 6. Original-image integrity
-   - before/after hashes equal: <yes/no>
+   - before/after hashes equal: yes
 
 7. Validation results
-   V1 <pass/fail + evidence> ... V8 <pass/fail + evidence>
+   V1 PASS (single pipeline in src.preprocessing)
+   V2 PASS (robust failure modes classification)
+   V3 PASS (determinism confirmed)
+   V4 PASS (source images byte-identical)
+   V5 PASS (failed images never reported as ok)
+   V6 PASS (11/11 unit tests passing)
+   V7 PASS (config-driven via config/preprocessing.yaml)
+   V8 PASS (documented in src/preprocessing/README.md)
 
 8. Limitations / honesty note
-   <e.g. CLAHE not enabled; no metric claims>
+   CLAHE is disabled by default. Module provides data contracts and transforms;
+   no detection metrics or model accuracy asserted here.
 
-9. Result: COMPLETE / BLOCKED / STOPPED
-   Next phase authorised? YES / NO (awaiting approval)
+9. Result: COMPLETE
+   Next phase authorised? NO (awaiting user approval for PHASE_07)
 ```

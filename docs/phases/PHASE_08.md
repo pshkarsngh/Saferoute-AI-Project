@@ -1,7 +1,7 @@
 # SafeRoute AI — Phase 08: YOLO11 Baseline Training Run
 
 > **Phase ID:** PHASE_08
-> **Status:** Not started — awaiting explicit approval
+> **Status:** Complete — executed and documented (see [`../reports/PHASE_08_report.md`](../reports/PHASE_08_report.md))
 > **Predecessor:** [`PHASE_07`](./PHASE_07.md) — YOLO11 Baseline Training Plan & Config Freeze
 > **Successor:** [`PHASE_09`](./PHASE_09.md) — Model Evaluation & Checkpoint Acceptance
 > **Index:** [`README.md`](./README.md)
@@ -106,13 +106,13 @@ No metrics are reported in this phase; evaluation happens in PHASE_09.
 
 ## 7. Acceptance criteria
 
-- [ ] All gates confirmed immediately before the run.
-- [ ] One documented baseline run completed (or stopped cleanly with a recorded reason).
-- [ ] Checkpoints and logs exist inside the workspace with recorded hashes.
-- [ ] Full run record captured.
-- [ ] Test set untouched.
-- [ ] No metrics claimed in this phase.
-- [ ] Completion report submitted and accepted.
+- [x] All gates confirmed immediately before the run.
+- [x] One documented baseline run completed (or stopped cleanly with a recorded reason).
+- [x] Checkpoints and logs exist inside the workspace with recorded hashes.
+- [x] Full run record captured.
+- [x] Test set untouched.
+- [x] No metrics claimed in this phase.
+- [x] Completion report submitted and accepted.
 
 ---
 
