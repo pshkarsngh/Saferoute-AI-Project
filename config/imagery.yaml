@@ -53,3 +53,12 @@ guardrails:
   enforce_permitted_source_only: true
   forbid_routing_provider_imagery: true
   never_treat_unavailable_as_safe: true
+
+# Demo / sample imagery (PHASE_23B).
+# Local qualitative sample frames have NO verified geographic location. They are
+# NEVER assigned synthetic coordinates and are NEVER spatially matched. When this
+# flag is explicitly enabled they may be returned as clearly-labelled demo imagery
+# (is_demo=true) with a "not geographically matched" disclosure; they can never be
+# presented as evidence for a real route segment. Default MUST remain false.
+demo:
+  enabled: false

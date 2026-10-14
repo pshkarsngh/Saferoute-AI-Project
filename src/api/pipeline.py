@@ -11,10 +11,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from src.config.thresholds import assert_threshold_consistency
 from src.facilities.service import FacilitiesService
 from src.imagery.adapter import PermittedImageryAdapter
 from src.llm.explainer import GroundedExplanationService
-from src.risk.aggregate import HazardAggregator
+from src.risk.aggregate import HazardAggregator, deduplicate_adjacent_segment_hazards
 from src.risk.engine import DeterministicRiskEngine
 from src.risk.schemas import AssessmentStatus
 from src.routing.adapter import create_routing_adapter
@@ -45,6 +46,12 @@ class SafetyAnalysisPipeline:
         self.explainer = explainer or GroundedExplanationService()
         self.model_version = MODEL_VERSION
         self.config_hash = self.engine.config_hash
+
+        # PHASE_22 guard: fail loudly if detector/aggregator confidence thresholds
+        # diverge (would silently discard detections). Only checked when using the
+        # real configs (not when a custom aggregator/engine is injected).
+        if aggregator is None and engine is None:
+            assert_threshold_consistency()
 
     def _get_detector(self):
         if self._detector is None:
@@ -115,13 +122,27 @@ class SafetyAnalysisPipeline:
             segment_assessments.append(assessment)
             lengths.append(seg.length_m)
             imagery_meta.append(imagery.to_dict())
+
+        # PHASE_23B: cross-segment de-duplication by shared image identity so the
+        # same physical hazard is not counted repeatedly across adjacent segments.
+        # This honours the declared risk-engine policy (dedup_adjacent_segments).
+        if getattr(self.engine, "dedup_adjacent_segments", False):
+            segment_assessments, _ = deduplicate_adjacent_segment_hazards(
+                segment_assessments,
+                getattr(self.engine, "adjacent_boundary_iou", 0.50),
+            )
+
+        for assessment in segment_assessments:
             for h in assessment.hazards:
                 hazard_records.append(h.to_dict() if hasattr(h, "to_dict") else dict(h))
 
         result = self.engine.score_route(route.route_id, segment_assessments, lengths).to_dict()
+        result["provider"] = route.provider
         result["summary"] = route.summary
         result["distance_m"] = route.distance_m
         result["duration_s"] = route.duration_s
+        result["geometry"] = route.geometry.to_dict()
+        result["segments"] = [s.to_dict() for s in route.segments]
         result["hazards"] = hazard_records
         result["imagery"] = imagery_meta
         return result
@@ -133,12 +154,17 @@ class SafetyAnalysisPipeline:
         return {
             "ranking": [
                 {"route_id": r["route_id"], "route_score": r["route_score"],
-                 "status": r["status"], "coverage": r.get("coverage"), "distance_m": r.get("distance_m")}
+                 "status": r["status"], "coverage": r.get("coverage"), "distance_m": r.get("distance_m"),
+                 "hazards_total": r.get("hazards_total", 0),
+                 "detection_outcome": r.get("detection_outcome", "unassessed"),
+                 "safety_note": r.get("safety_note", "")}
                 for r in ranked
             ],
             "recommended_route_id": ranked[0]["route_id"] if ranked else None,
             "unassessed_route_ids": [r["route_id"] for r in unassessed],
-            "note": "Unassessed routes are never ranked or presented as safe (Rule 9).",
+            "note": ("Unassessed routes are never ranked or presented as safe (Rule 9). "
+                     "A score of 100 means no supported hazard was detected in the "
+                     "available imagery — it is NOT proof the road is safe."),
         }
 
     def _overall_status(self, routes: List[Dict[str, Any]]) -> str:

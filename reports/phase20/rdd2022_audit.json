@@ -1,0 +1,117 @@
+{
+  "phase": "PHASE_20",
+  "generated_utc": "2026-10-14T14:04:00.806987+00:00",
+  "dataset_dir": "D:\\New folder (3)\\data\\raw\\RDD2022\\RDD2022",
+  "read_only": true,
+  "class_map": {
+    "D40": "pothole",
+    "D00": "crack",
+    "D10": "crack",
+    "D20": "crack"
+  },
+  "countries": {
+    "China_Drone": {
+      "train_images": 2401,
+      "train_xmls": 2401,
+      "test_images": 0,
+      "paired": 2401,
+      "images_without_xml": 0,
+      "xml_without_image": 0
+    },
+    "China_MotorBike": {
+      "train_images": 1977,
+      "train_xmls": 1977,
+      "test_images": 500,
+      "paired": 1977,
+      "images_without_xml": 0,
+      "xml_without_image": 0
+    },
+    "Czech": {
+      "train_images": 2829,
+      "train_xmls": 2829,
+      "test_images": 709,
+      "paired": 2829,
+      "images_without_xml": 0,
+      "xml_without_image": 0
+    },
+    "India": {
+      "train_images": 7706,
+      "train_xmls": 7706,
+      "test_images": 1959,
+      "paired": 7706,
+      "images_without_xml": 0,
+      "xml_without_image": 0
+    },
+    "Japan": {
+      "train_images": 10506,
+      "train_xmls": 10506,
+      "test_images": 2627,
+      "paired": 10506,
+      "images_without_xml": 0,
+      "xml_without_image": 0
+    },
+    "Norway": {
+      "present": false
+    },
+    "United_States": {
+      "train_images": 4805,
+      "train_xmls": 4805,
+      "test_images": 1200,
+      "paired": 4805,
+      "images_without_xml": 0,
+      "xml_without_image": 0
+    }
+  },
+  "totals": {
+    "train_images": 30224,
+    "train_xmls": 30224,
+    "test_images": 6995,
+    "boxes_by_raw_class": {
+      "Block crack": 3,
+      "D00": 17446,
+      "D01": 179,
+      "D0w0": 1,
+      "D10": 10100,
+      "D11": 45,
+      "D20": 10149,
+      "D40": 6083,
+      "D43": 793,
+      "D44": 5057,
+      "D50": 3581,
+      "Repair": 1046
+    },
+    "boxes_by_project_class": {
+      "crack": 37695,
+      "pothole": 6083
+    },
+    "unknown_classes": {
+      "Block crack": 3,
+      "D01": 179,
+      "D0w0": 1,
+      "D11": 45,
+      "D43": 793,
+      "D44": 5057,
+      "D50": 3581,
+      "Repair": 1046
+    },
+    "malformed": {
+      "zero_area": 1
+    },
+    "duplicate_filename_stems": 0
+  },
+  "session_groups": {
+    "groups": 6,
+    "largest": [
+      10506,
+      7706,
+      4805,
+      2829,
+      2401,
+      1977
+    ]
+  },
+  "proposed_class_mapping": {
+    "project_id_0": "pothole",
+    "project_id_1": "crack"
+  }
+}

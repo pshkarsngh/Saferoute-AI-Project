@@ -13,7 +13,7 @@ from src.risk.schemas import (
     RouteSafetyResult,
 )
 from src.risk.severity import SeverityPolicy
-from src.risk.aggregate import HazardAggregator, compute_iou
+from src.risk.aggregate import HazardAggregator, compute_iou, deduplicate_adjacent_segment_hazards
 from src.risk.engine import DeterministicRiskEngine, compute_config_hash
 
 __all__ = [
@@ -26,6 +26,7 @@ __all__ = [
     "SeverityPolicy",
     "HazardAggregator",
     "compute_iou",
+    "deduplicate_adjacent_segment_hazards",
     "DeterministicRiskEngine",
     "compute_config_hash",
 ]

@@ -1,0 +1,49 @@
+# SafeRoute AI — Application Runtime Configuration
+# Follows master_rules.md Rules 1, 8, 9, 13, 17, 19.
+#
+# This file selects the providers used by the running application. It contains
+# NO secrets — secrets (Mapillary token, etc.) come only from the workspace
+# `.env` (Rule 13). Every provider degrades gracefully to an offline fallback so
+# the system is never left unusable.
+
+app:
+  # Routing: OSRM (keyless OpenStreetMap) with automatic mock fallback.
+  routing_provider: "osrm"            # osrm | mock
+
+  # Facilities: Overpass (keyless OpenStreetMap). Context only (Rule 11).
+  facilities_provider: "overpass"     # overpass | mock
+
+  # Street imagery: Mapillary (permitted CC-BY-SA 4.0) when a token is present,
+  # otherwise the local workspace dashcam archive. Never a disallowed source.
+  imagery_source: "mapillary"         # mapillary | workspace_dashcam_v1
+  imagery_fallback_source: "workspace_dashcam_v1"
+
+  geocoding:
+    enabled: true
+    provider: "nominatim"             # nominatim | mock
+    base_url: "https://nominatim.openstreetmap.org"
+    country_codes: ""                 # optional comma-separated bias, e.g. "in,us"
+
+  imagery:
+    max_images_per_segment: 3
+    search_radius_meters: 25.0
+    thumbnail_width: 1024
+    download_thumbnails: true
+    timeout_seconds: 15.0
+    # PHASE_23B: local sample imagery is NOT geographically matched and is OFF by
+    # default. Enable only for an explicit, clearly-labelled demo (no fabricated
+    # coordinates, no route-evidence claims).
+    demo_mode: false
+
+  llm:
+    enabled: true                     # requires a reachable local Ollama, else fallback
+    base_url: "http://127.0.0.1:11434"
+    model: "llama3.2"
+    timeout_seconds: 30.0
+
+  server:
+    host: "127.0.0.1"
+    port: 8000
+
+  user_agent: "SafeRouteAI/1.0 (road-safety research)"
+  static_dir: "frontend"

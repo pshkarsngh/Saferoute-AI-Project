@@ -14,7 +14,11 @@ model:
 
 inference:
   imgsz: 640            # inference resolution (higher can help small cracks)
-  conf: 0.15            # lowered from 0.25 to recover low-confidence true hazards
+  # SINGLE CONFIDENCE POLICY (PHASE_22): must equal
+  # config/hazard_severity.yaml -> thresholds.confidence_threshold.
+  # Was 0.15, which made the aggregator (0.25) silently discard detections in
+  # [0.15, 0.25). Both are now 0.25 so no detection is silently dropped.
+  conf: 0.25
   iou: 0.45             # NMS IoU
   max_det: 300
   augment: false        # test-time augmentation (TTA); slower, higher recall

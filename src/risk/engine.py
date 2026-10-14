@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import yaml
 
+from src.risk.aggregate import deduplicate_adjacent_segment_hazards
 from src.risk.schemas import (
     AssessmentStatus,
     CoverageInfo,
@@ -77,6 +78,11 @@ class DeterministicRiskEngine:
 
         self.engine_version = self.config.get("metadata", {}).get("engine_version", "risk-v1")
         self.model_version = self.config.get("metadata", {}).get("model_version", "saferoute-yolo11-v1")
+
+        # PHASE_23B: cross-segment de-duplication policy (TRD §9.4 / ARCHITECTURE §7).
+        hm_cfg = self.config.get("hazard_metric", {}) or {}
+        self.dedup_adjacent_segments = bool(hm_cfg.get("dedup_adjacent_segments", True))
+        self.adjacent_boundary_iou = float(hm_cfg.get("adjacent_boundary_iou", 0.50))
 
     def compute_hazard_density(self, aggregate_hazard: float, length_m: float) -> float:
         """Calculate normalized hazard density H_i per kilometer.
@@ -191,13 +197,24 @@ class DeterministicRiskEngine:
                 status=AssessmentStatus.UNASSESSED,
                 segment_scores=[],
                 limitations=["Route contains no segments to evaluate."],
+                hazards_total=0,
+                detection_outcome="unassessed",
+                safety_note="Route has no segments to evaluate; safety is unassessed.",
             )
+
+        # PHASE_23B: apply the declared cross-segment de-duplication policy so the
+        # same image's hazard is not double-counted across adjacent segments.
+        assessments = list(segment_assessments)
+        dedup_count = 0
+        if self.dedup_adjacent_segments:
+            assessments, dedup_count = deduplicate_adjacent_segment_hazards(
+                assessments, self.adjacent_boundary_iou)
 
         # Match lengths
         lengths = (
             list(segment_lengths_m)
-            if segment_lengths_m and len(segment_lengths_m) == len(segment_assessments)
-            else [self.default_length_m] * len(segment_assessments)
+            if segment_lengths_m and len(segment_lengths_m) == len(assessments)
+            else [self.default_length_m] * len(assessments)
         )
 
         segment_scores: List[SegmentScoreResult] = []
@@ -207,12 +224,17 @@ class DeterministicRiskEngine:
         total_images_all = 0
         used_images_all = 0
         route_limitations: List[str] = []
+        if dedup_count:
+            route_limitations.append(
+                f"Deduplicated {dedup_count} cross-segment duplicate hazard(s) "
+                f"sharing image identity across adjacent segments."
+            )
 
         has_partial = False
         has_unassessed = False
         has_failed = False
 
-        for asm, length in zip(segment_assessments, lengths):
+        for asm, length in zip(assessments, lengths):
             seg_res = self.score_segment(asm, length)
             segment_scores.append(seg_res)
 
@@ -262,6 +284,34 @@ class DeterministicRiskEngine:
         else:
             route_status = AssessmentStatus.ASSESSED
 
+        # PHASE_22: explicit detection outcome so a zero-hazard result (score 100)
+        # is never presented as proof of a safe road (Rule 9).
+        hazards_total = sum(
+            len(asm.hazards)
+            for asm, sr in zip(assessments, segment_scores)
+            if sr.segment_score is not None
+        )
+        if route_status == AssessmentStatus.FAILED:
+            outcome = "detector_failed"
+            note = ("Detection failed on this route; no safety conclusion is possible.")
+        elif route_status == AssessmentStatus.UNASSESSED:
+            outcome = "unassessed"
+            note = ("No assessable imagery for this route; road safety is unassessed "
+                    "(missing evidence is not proof of safety).")
+        elif hazards_total > 0:
+            outcome = "hazards_detected"
+            note = ("Supported hazards were detected on assessed segments; the score "
+                    "reflects verified detections.")
+        elif route_status == AssessmentStatus.PARTIALLY_ASSESSED or route_fraction < 1.0:
+            outcome = "insufficient_coverage"
+            note = ("Only part of the route had assessable imagery; the unassessed "
+                    "remainder must NOT be treated as safe.")
+        else:
+            outcome = "no_hazards_detected"
+            note = ("Imagery was assessed and no supported hazards were detected. "
+                    "This is NOT proof that the road is safe (Rule 9) — only that the "
+                    "detector found none in the available imagery.")
+
         return RouteSafetyResult(
             route_id=route_id,
             model_version=self.model_version,
@@ -271,4 +321,7 @@ class DeterministicRiskEngine:
             status=route_status,
             segment_scores=segment_scores,
             limitations=route_limitations,
+            hazards_total=hazards_total,
+            detection_outcome=outcome,
+            safety_note=note,
         )

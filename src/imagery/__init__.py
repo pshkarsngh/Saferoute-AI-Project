@@ -17,6 +17,7 @@ from src.imagery.matcher import (
     point_to_segment_distance_m,
 )
 from src.imagery.adapter import PermittedImageryAdapter
+from src.imagery.mapillary_provider import MapillaryHttp, MapillaryImageryProvider
 
 __all__ = [
     "ImageRef",
@@ -28,4 +29,6 @@ __all__ = [
     "SegmentImageryMatcher",
     "point_to_segment_distance_m",
     "PermittedImageryAdapter",
+    "MapillaryHttp",
+    "MapillaryImageryProvider",
 ]

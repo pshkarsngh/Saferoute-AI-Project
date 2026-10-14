@@ -83,7 +83,8 @@ def main():
     print(f"[VERIFIED] Workspace root: {WORKSPACE_ROOT}")
 
     # 2. Load configurations
-    config_path = WORKSPACE_ROOT / "config" / "training_baseline.yaml"
+    config_name = sys.argv[1] if len(sys.argv) > 1 else "training_baseline.yaml"
+    config_path = WORKSPACE_ROOT / "config" / config_name
     verify_path_inside_workspace(config_path, "Training config")
     with open(config_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
@@ -224,6 +225,8 @@ def main():
 
         model = YOLO(str(weights_path))
         hyp = cfg["hyperparameters"]
+        aug = hyp.get("augmentation", {})
+        cos_lr = bool(hyp.get("cos_lr", False))
 
         # Run training strictly according to the frozen configuration
         train_results = model.train(
@@ -248,6 +251,20 @@ def main():
             deterministic=hyp["deterministic"],
             workers=hyp["workers"],
             device=hyp["device"],
+            cos_lr=cos_lr,
+            mosaic=aug.get("mosaic", 1.0),
+            mixup=aug.get("mixup", 0.0),
+            hsv_h=aug.get("hsv_h", 0.015),
+            hsv_s=aug.get("hsv_s", 0.7),
+            hsv_v=aug.get("hsv_v", 0.4),
+            degrees=aug.get("degrees", 0.0),
+            translate=aug.get("translate", 0.1),
+            scale=aug.get("scale", 0.5),
+            shear=aug.get("shear", 0.0),
+            perspective=aug.get("perspective", 0.0),
+            fliplr=aug.get("fliplr", 0.5),
+            flipud=aug.get("flipud", 0.0),
+            close_mosaic=aug.get("close_mosaic", 10),
             save_period=cfg["paths"].get("save_period", 5),
             project=str(project_dir),
             name=exp_name,

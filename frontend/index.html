@@ -4,37 +4,63 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SafeRoute AI</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
     <h1>SafeRoute AI</h1>
     <p class="sub">Route safety comparison grounded in verified data only.</p>
+    <p id="providerLine" class="hint"></p>
   </header>
 
   <section class="card">
     <h2>1. Destination</h2>
-    <p class="hint">Coordinates are required (no geocoding provider is configured).</p>
-    <div class="grid">
-      <label>Origin latitude <input id="olat" type="number" step="0.0001" value="12.9716" /></label>
-      <label>Origin longitude <input id="olon" type="number" step="0.0001" value="77.5946" /></label>
-      <label>Destination latitude <input id="dlat" type="number" step="0.0001" value="12.9352" /></label>
-      <label>Destination longitude <input id="dlon" type="number" step="0.0001" value="77.6245" /></label>
+    <p class="hint">Type a place name (geocoded via OpenStreetMap) or click the map.</p>
+    <div class="grid2">
+      <label>Origin
+        <input id="originQuery" type="text" placeholder="e.g. MG Road, Bengaluru" />
+      </label>
+      <label>Destination
+        <input id="destQuery" type="text" placeholder="e.g. Electronic City, Bengaluru" list="geoCandidates" />
+      </label>
     </div>
+    <datalist id="geoCandidates"></datalist>
     <div class="row">
+      <button id="btnMyLocation">Use my location</button>
+      <button id="btnSearch">Search destination</button>
       <button id="btnRoutes">Find routes</button>
       <button id="btnAnalyze" class="primary">Analyze safety</button>
       <span id="status" class="status"></span>
     </div>
+    <details class="advanced">
+      <summary>Advanced (manual coordinates)</summary>
+      <div class="grid">
+        <label>Origin latitude <input id="olat" type="number" step="0.0001" placeholder="auto" /></label>
+        <label>Origin longitude <input id="olon" type="number" step="0.0001" placeholder="auto" /></label>
+        <label>Destination latitude <input id="dlat" type="number" step="0.0001" /></label>
+        <label>Destination longitude <input id="dlon" type="number" step="0.0001" /></label>
+      </div>
+    </details>
   </section>
 
-  <section class="card"><h2>2. Routes returned</h2><div id="routes"><em>No data yet.</em></div></section>
-  <section class="card"><h2>3. Comparison &amp; recommendation</h2><div id="comparison"><em>No data yet.</em></div></section>
-  <section class="card"><h2>4. Hazard evidence</h2><div id="hazards"><em>No data yet.</em></div></section>
-  <section class="card"><h2>5. Nearby facilities (context only — not part of the score)</h2><div id="facilities"><em>Not loaded.</em></div></section>
-  <section class="card"><h2>6. Explanation</h2><div id="explanation"><em>No data yet.</em></div></section>
-  <section class="card disclosures"><h2>7. Coverage, limitations &amp; honesty</h2><div id="disclosures"><em>No data yet.</em></div></section>
+  <section class="card"><h2>2. Map</h2><div id="map"></div></section>
 
+  <section class="card"><h2>3. Routes returned</h2><div id="routes"><em>No data yet.</em></div></section>
+  <section class="card"><h2>4. Comparison &amp; recommendation</h2><div id="comparison"><em>No data yet.</em></div></section>
+  <section class="card"><h2>5. Hazard evidence</h2><div id="hazards"><em>No data yet.</em></div></section>
+  <section class="card"><h2>6. Nearby facilities (context only — not part of the score)</h2><div id="facilities"><em>Not loaded.</em></div></section>
+  <section class="card"><h2>7. Explanation</h2><div id="explanation"><em>No data yet.</em></div></section>
+  <section class="card disclosures"><h2>8. Coverage, limitations &amp; honesty</h2><div id="disclosures"><em>No data yet.</em></div></section>
+
+  <footer class="hint">
+    Map/geocoding data &copy; OpenStreetMap contributors (ODbL). Imagery (if enabled) &copy; Mapillary contributors (CC-BY-SA 4.0).
+    Detector covers <strong>pothole</strong> and <strong>crack</strong> only (limited accuracy); other classes are reported unsupported.
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="app.js"></script>
 </body>
 </html>

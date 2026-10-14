@@ -1,0 +1,73 @@
+# SafeRoute AI — YOLO11 Improved Training Configuration (v2)
+# Model Version Identifier: saferoute-yolo11-v2
+# Goal: improve generalisation of the existing classes (pothole, crack) via
+#       stronger augmentation, longer schedule and cosine LR.
+# Follows master_rules.md Rules 1, 4, 5, 14, 16, 17, 19; docs/TRAINING_RULES.md.
+# NOTE: uses the LOCAL pretrained yolo11n.pt already in the workspace (no download).
+#       The accepted v1 checkpoint is preserved untouched.
+
+experiment:
+  name: "saferoute-yolo11-v2-improved"
+  model_version: "saferoute-yolo11-v2"
+  phase_id: "TRAIN-V2"
+  date_frozen: "2026-10-14"
+
+model:
+  variant: "yolo11n"
+  pretrained_weights: "yolo11n.pt"
+  licence: "AGPL-3.0 / Enterprise"
+  download_status: "already_present_in_workspace"
+
+dataset:
+  config_path: "data/dataset.yaml"
+  num_classes: 2
+  classes:
+    0: "pothole"
+    1: "crack"
+  unsupported_classes:
+    2: "manhole"
+
+hyperparameters:
+  imgsz: 640
+  batch: 16
+  epochs: 150                 # longer schedule (was 50)
+  patience: 40                # more patience for the longer schedule (was 10)
+  optimizer: "AdamW"
+  lr0: 0.001                  # AdamW-friendly initial LR
+  lrf: 0.01
+  momentum: 0.937
+  weight_decay: 0.0005
+  warmup_epochs: 3.0
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+  box: 7.5
+  cls: 0.5
+  dfl: 1.5
+  amp: true
+  seed: 42
+  deterministic: true
+  workers: 2
+  device: 0
+  cos_lr: true                # cosine LR schedule
+
+  # Augmentation (the main lever for a small, noisy dataset)
+  augmentation:
+    mosaic: 1.0
+    mixup: 0.15
+    hsv_h: 0.015
+    hsv_s: 0.7
+    hsv_v: 0.4
+    degrees: 8.0
+    translate: 0.1
+    scale: 0.5
+    shear: 2.0
+    perspective: 0.0005
+    fliplr: 0.5
+    flipud: 0.0
+    close_mosaic: 15
+
+paths:
+  project: "models/training"
+  name: "saferoute-yolo11-v2"
+  log_dir: "logs/training/saferoute-yolo11-v2"
+  save_period: 10

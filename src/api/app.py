@@ -1,4 +1,4 @@
-"""SafeRoute AI — stdlib HTTP API server (PHASE_16).
+"""SafeRoute AI — stdlib HTTP API server.
 
 Implements the TRD §11 endpoints without third-party web frameworks (FastAPI is
 not installed and installing it is gated by Rule 19). Uses http.server + sqlite3
@@ -6,21 +6,38 @@ from the standard library so the API runs with zero new dependencies.
 
 Endpoints:
     GET  /api/health
+    GET  /api/config          (non-secret provider/capability summary)
+    POST /api/geocode         (place name -> coordinates; keyless Nominatim)
     POST /api/routes
     POST /api/analyze
     GET  /api/analyze/{id}
     GET  /api/analysis/{id}/hazards
     GET  /api/analysis/{id}/comparison
     GET  /api/analysis/{id}/explanation
+    POST /api/facilities
+    GET  /                    (serves the frontend/)
+
+The server also statically serves the workspace `frontend/` directory so the UI
+and API run from a single process (real-life single-command startup).
 """
 
+from __future__ import annotations
+
 import json
+import mimetypes
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+from src.api.bootstrap import build_geocoder, build_pipeline
 from src.api.pipeline import SafetyAnalysisPipeline
 from src.api.store import AnalysisStore
+from src.config import Settings, load_settings
+from src.geocoding.interfaces import GeocodingProvider
 from src.routing.schemas import Coordinate
+
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def _parse_coord(value: Any) -> Optional[Coordinate]:
@@ -36,34 +53,116 @@ def _error(code: str, message: str, detail: str = "") -> Dict[str, Any]:
 
 
 class SafeRouteAPI:
-    """Request router holding the pipeline and persistence store."""
+    """Request router holding the pipeline, geocoder and persistence store."""
 
-    def __init__(self, pipeline: Optional[SafetyAnalysisPipeline] = None, store: Optional[AnalysisStore] = None):
-        self.pipeline = pipeline or SafetyAnalysisPipeline()
+    def __init__(
+        self,
+        pipeline: Optional[SafetyAnalysisPipeline] = None,
+        store: Optional[AnalysisStore] = None,
+        settings: Optional[Settings] = None,
+        geocoder: Optional[GeocodingProvider] = None,
+    ):
+        self.settings = settings or load_settings()
+        self.pipeline = pipeline or build_pipeline(self.settings)
         self.store = store or AnalysisStore()
+        self.geocoder = geocoder if geocoder is not None else build_geocoder(self.settings)
 
+    # ------------------------------------------------------------------ #
     def health(self) -> Tuple[int, Dict[str, Any]]:
-        return 200, {"status": "ok", "model_version": self.pipeline.model_version,
-                     "config_hash": self.pipeline.config_hash}
+        return 200, {
+            "status": "ok",
+            "model_version": self.pipeline.model_version,
+            "config_hash": self.pipeline.config_hash,
+            "providers": {
+                "routing": getattr(self.pipeline.routing, "provider_name", "unknown"),
+                "imagery": getattr(self.pipeline.imagery, "provider_name", "unknown"),
+                "facilities": getattr(self.pipeline.facilities.provider, "provider_name", "unknown"),
+                "geocoding": getattr(self.geocoder, "provider_name", None) if self.geocoder else None,
+                "llm": "ollama" if getattr(self.pipeline.explainer, "enabled", False) else "fallback",
+            },
+            "capabilities": {
+                "geocoding": bool(self.settings.geocoding_enabled and self.geocoder),
+                "live_imagery": getattr(self.pipeline.imagery, "provider_name", "") == "mapillary",
+                "live_llm": bool(getattr(self.pipeline.explainer, "enabled", False)),
+            },
+        }
+
+    def config(self) -> Tuple[int, Dict[str, Any]]:
+        return 200, {"status": "ok", "settings": self.settings.to_safe_dict()}
+
+    # ------------------------------------------------------------------ #
+    def _resolve_location(
+        self,
+        payload: Dict[str, Any],
+        coord_key: str,
+        query_key: str,
+        required: bool = True,
+    ) -> Tuple[Optional[Coordinate], Optional[str]]:
+        """Resolve a location from coordinates or a place-name query."""
+        raw = payload.get(coord_key)
+        coord = _parse_coord(raw)
+        if coord is not None:
+            return coord, None
+
+        query = payload.get(query_key)
+        if query is None and isinstance(raw, str):
+            query = raw
+        if query:
+            if not self.settings.geocoding_enabled or self.geocoder is None:
+                return None, "Geocoding is disabled on this server; supply {latitude, longitude}."
+            result = self.geocoder.geocode(str(query), limit=1)
+            if result.status.value == "ok" and result.candidates:
+                best = result.candidates[0]
+                return Coordinate(best.latitude, best.longitude), None
+            return None, f"Could not resolve '{query}': {result.error_message or result.status.value}"
+
+        if required:
+            return None, "location must be {latitude, longitude} or a place name (destination_query)."
+        return None, None
+
+    def geocode(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
+        query = payload.get("query") or payload.get("q")
+        if not query:
+            return 400, _error("invalid_request", "Provide 'query' with a place name.", "")
+        if not self.settings.geocoding_enabled or self.geocoder is None:
+            return 503, _error("geocoding_disabled", "Geocoding is disabled on this server.", "")
+        try:
+            limit = int(payload.get("limit", 5))
+        except (TypeError, ValueError):
+            limit = 5
+        result = self.geocoder.geocode(str(query), limit=limit)
+        code = 200 if result.status.value in ("ok", "no_results") else 502
+        return code, result.to_dict()
 
     def routes(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-        origin = _parse_coord(payload.get("origin")) if payload.get("origin") else Coordinate(12.9716, 77.5946)
-        destination = _parse_coord(payload.get("destination"))
-        if origin is None or destination is None:
-            return 400, _error("invalid_request", "origin/destination must be {latitude, longitude} or [lat, lon].",
-                               "No geocoding provider is configured; supply coordinates.")
+        origin, err = self._resolve_location(payload, "origin", "origin_query", required=False)
+        if err:
+            return 400, _error("invalid_request", err)
+        if origin is None:
+            origin = Coordinate(12.9716, 77.5946)
+        destination, err = self._resolve_location(payload, "destination", "destination_query", required=True)
+        if err or destination is None:
+            return 400, _error("invalid_request", err or "destination is required.",
+                               "No geocoding provider resolved the destination.")
         return 200, self.pipeline.resolve_routes(origin, destination)
 
     def analyze(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-        origin = _parse_coord(payload.get("origin")) if payload.get("origin") else Coordinate(12.9716, 77.5946)
-        destination = _parse_coord(payload.get("destination"))
-        if origin is None or destination is None:
-            return 400, _error("invalid_request", "origin/destination must be {latitude, longitude} or [lat, lon].",
-                               "No geocoding provider is configured; supply coordinates.")
+        origin, err = self._resolve_location(payload, "origin", "origin_query", required=False)
+        if err:
+            return 400, _error("invalid_request", err)
+        if origin is None:
+            origin = Coordinate(12.9716, 77.5946)
+        destination, err = self._resolve_location(payload, "destination", "destination_query", required=True)
+        if err or destination is None:
+            return 400, _error("invalid_request", err or "destination is required.",
+                               "No geocoding provider resolved the destination.")
         record = self.pipeline.analyze(origin, destination)
+        record["destination_query"] = payload.get("destination_query")
+        record["origin_query"] = payload.get("origin_query")
         self.store.save_analysis(record)
         return 200, record
 
+    # ------------------------------------------------------------------ #
     def _load(self, analysis_id: str):
         return self.store.get_analysis(analysis_id)
 
@@ -97,9 +196,11 @@ class SafeRouteAPI:
         return 200, rec.get("explanation", {})
 
     def facilities(self, payload: Dict[str, Any]):
-        loc = _parse_coord(payload.get("location")) or _parse_coord(payload.get("destination"))
+        loc, err = self._resolve_location(payload, "location", "location_query", required=False)
         if loc is None:
-            return 400, _error("invalid_request", "location must be {latitude, longitude} or [lat, lon].")
+            loc, err = self._resolve_location(payload, "destination", "destination_query", required=True)
+        if err or loc is None:
+            return 400, _error("invalid_request", err or "location must be {latitude, longitude} or a place name.")
         radius = payload.get("radius_m")
         cats = payload.get("categories")
         result = self.pipeline.facilities.get_nearby_facilities(loc.latitude, loc.longitude, radius, cats)
@@ -107,7 +208,8 @@ class SafeRouteAPI:
 
 
 class _Handler(BaseHTTPRequestHandler):
-    api: SafeRouteAPI = None  # type: ignore
+    api: Optional[SafeRouteAPI] = None
+    static_dir: Path = WORKSPACE_ROOT / "frontend"
 
     def log_message(self, *args):  # keep logs quiet & secret-free
         return
@@ -117,6 +219,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -130,12 +234,44 @@ class _Handler(BaseHTTPRequestHandler):
         except Exception:
             return {}
 
+    def _serve_static(self, path: str) -> bool:
+        """Serve a file from the frontend directory. Returns True if handled."""
+        rel = path.lstrip("/")
+        if rel == "" or rel == "/":
+            rel = "index.html"
+        candidate = (self.static_dir / rel).resolve()
+        try:
+            candidate.relative_to(self.static_dir.resolve())
+        except ValueError:
+            return False  # path traversal attempt
+        if not candidate.is_file():
+            return False
+        ctype, _ = mimetypes.guess_type(str(candidate))
+        body = candidate.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", ctype or "application/octet-stream")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return True
+
+    def do_OPTIONS(self):
+        self._send(204, {})
+
     def do_GET(self):
-        path = self.path.split("?", 1)[0].rstrip("/")
+        path = self.path.split("?", 1)[0].rstrip("/") or "/"
         parts = [p for p in path.split("/") if p]
+        if not path.startswith("/api"):
+            if self.static_dir and self._serve_static(path):
+                return
+            self._send(404, _error("not_found", f"Unknown path '{path}'."))
+            return
         try:
             if path == "/api/health":
                 code, obj = self.api.health()
+            elif path == "/api/config":
+                code, obj = self.api.config()
             elif len(parts) == 3 and parts[1] == "analyze":
                 code, obj = self.api.get_analysis(parts[2])
             elif len(parts) == 4 and parts[1] == "analysis":
@@ -162,6 +298,8 @@ class _Handler(BaseHTTPRequestHandler):
                 code, obj = self.api.routes(payload)
             elif path == "/api/analyze":
                 code, obj = self.api.analyze(payload)
+            elif path == "/api/geocode":
+                code, obj = self.api.geocode(payload)
             elif path == "/api/facilities":
                 code, obj = self.api.facilities(payload)
             else:
@@ -171,17 +309,27 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(code, obj)
 
 
-def create_server(host: str = "127.0.0.1", port: int = 8000, api: SafeRouteAPI = None) -> HTTPServer:
-    _Handler.api = api or SafeRouteAPI()
+def create_server(host: str = "127.0.0.1", port: int = 8000, api: SafeRouteAPI = None,
+                  static_dir: Optional[Path] = None) -> HTTPServer:
+    api = api or SafeRouteAPI()
+    _Handler.api = api
+    if static_dir is not None:
+        _Handler.static_dir = Path(static_dir)
+    elif api is not None:
+        from src.config.env import WORKSPACE_ROOT as _WS
+        _Handler.static_dir = (_WS / api.settings.static_dir)
     return HTTPServer((host, port), _Handler)
 
 
 def main():
-    import os
-    host = os.environ.get("SAFEROUTE_HOST", "127.0.0.1")
-    port = int(os.environ.get("SAFEROUTE_PORT", "8000"))
+    settings = load_settings()
+    host = settings.host
+    port = settings.port
     server = create_server(host, port)
-    print(f"SafeRoute AI API listening on http://{host}:{port}")
+    print(f"SafeRoute AI API + UI listening on http://{host}:{port}")
+    print(f"  routing={settings.routing_provider} imagery={settings.imagery_source} "
+          f"facilities={settings.facilities_provider} geocoding={settings.geocoding_provider} "
+          f"llm={'on' if settings.llm_enabled else 'off'} mapillary_token={'yes' if settings.mapillary_token else 'no'}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

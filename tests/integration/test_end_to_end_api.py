@@ -15,6 +15,7 @@ from pathlib import Path
 from src.api.app import SafeRouteAPI, create_server
 from src.api.pipeline import SafetyAnalysisPipeline
 from src.api.store import AnalysisStore
+from src.geocoding.mock_geocoder import MockGeocoder
 from tests.unit.test_api import (
     AllMissingImageryProvider,
     FailingRoutingProvider,
@@ -46,7 +47,7 @@ class TestEndToEndApi(unittest.TestCase):
 
     def _server(self, **kw):
         pipeline = SafetyAnalysisPipeline(detector=FakeDetector(), **kw)
-        api = SafeRouteAPI(pipeline=pipeline, store=self.store)
+        api = SafeRouteAPI(pipeline=pipeline, store=self.store, geocoder=MockGeocoder())
         srv = create_server("127.0.0.1", 0, api=api)
         self._servers.append(srv)
         threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -124,6 +125,25 @@ class TestEndToEndApi(unittest.TestCase):
         self.assertEqual(code, 404)
         self.assertEqual(obj["status"], "failed")
         self.assertIn("code", obj["error"])
+
+    def test_geocode_endpoint_resolves_place(self):
+        base = self._server()
+        code, obj = self._post(base, "/api/geocode", {"query": "Koramangala"})
+        self.assertEqual(code, 200)
+        self.assertTrue(obj["candidates"])
+
+    def test_serves_static_index(self):
+        base = self._server()
+        with urllib.request.urlopen(base + "/", timeout=10) as r:
+            self.assertEqual(r.status, 200)
+            body = r.read().decode("utf-8", "replace")
+        self.assertIn("SafeRoute AI", body)
+
+    def test_analyze_accepts_place_name_destination(self):
+        base = self._server(imagery_adapter=HalfImageryProvider())
+        code, rec = self._post(base, "/api/analyze", {"destination_query": "Koramangala"})
+        self.assertEqual(code, 200)
+        self.assertEqual(rec["destination"]["latitude"], 12.9352)
 
 
 if __name__ == "__main__":

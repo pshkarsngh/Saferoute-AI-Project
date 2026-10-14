@@ -5,6 +5,7 @@ Policy Version: severity-v1
 Follows: TRD §8, ARCHITECTURE §7, master_rules.md Rules 5, 7, 9, 12, 14.
 """
 
+from dataclasses import replace
 from typing import Any, Dict, List, Optional, Tuple, Union
 from collections import defaultdict
 
@@ -36,6 +37,88 @@ def compute_iou(box1: List[float], box2: List[float]) -> float:
     if union_area <= 1e-9:
         return 0.0
     return float(inter_area / union_area)
+
+
+def _boxes_equivalent(box1: List[float], box2: List[float], tol: float = 1e-6) -> bool:
+    """True when two bounding boxes are identical (handles degenerate/zero boxes)."""
+    if len(box1) != 4 or len(box2) != 4:
+        return False
+    return all(abs(float(a) - float(b)) <= tol for a, b in zip(box1, box2))
+
+
+def deduplicate_adjacent_segment_hazards(
+    assessments: List["SegmentAssessment"],
+    iou_threshold: float = 0.50,
+) -> Tuple[List["SegmentAssessment"], int]:
+    """Remove cross-segment duplicate hazards that share image identity.
+
+    Implements the declared ``hazard_metric.dedup_adjacent_segments`` /
+    ``adjacent_boundary_iou`` policy (TRD §9.4, ARCHITECTURE §7): the *same
+    physical hazard* — identified by the same source ``image_id`` and hazard
+    class, with an equivalent or IoU-overlapping bounding box — must not be
+    counted again when it also falls within the buffer of an adjacent segment.
+
+    Behaviour:
+    - Segments are processed in route order; the first occurrence of an image
+      hazard is retained and later identical occurrences are dropped.
+    - Hazards with no ``image_id`` cannot be identified and are always retained
+      (distinct unknown hazards are never silently discarded).
+    - Distinct hazards on the same image (different class or non-overlapping
+      boxes) are preserved.
+    - Removed severity is subtracted from the owning segment's
+      ``aggregate_hazard`` so scoring semantics are unchanged apart from the
+      duplicate removal.
+
+    This is a pure function: inputs are not mutated; changed segments are copied.
+
+    Returns:
+        (assessments, deduplicated_count)
+    """
+    seen: List[Tuple[str, str, List[float]]] = []
+    result: List["SegmentAssessment"] = []
+    dedup_count = 0
+
+    for asm in assessments:
+        kept: List[HazardRecord] = []
+        removed_severity = 0.0
+        removed_here = 0
+
+        for hazard in asm.hazards:
+            image_id = (hazard.image_id or "").strip()
+            is_duplicate = False
+            if image_id:
+                for seen_id, seen_class, seen_box in seen:
+                    if seen_id != image_id or seen_class != hazard.hazard_class:
+                        continue
+                    if _boxes_equivalent(seen_box, hazard.bbox_xyxy) or \
+                            compute_iou(seen_box, hazard.bbox_xyxy) >= iou_threshold:
+                        is_duplicate = True
+                        break
+
+            if is_duplicate:
+                removed_severity += float(hazard.severity)
+                removed_here += 1
+                dedup_count += 1
+                continue
+
+            if image_id:
+                seen.append((image_id, hazard.hazard_class, list(hazard.bbox_xyxy)))
+            kept.append(hazard)
+
+        if removed_here:
+            new_limitations = list(asm.limitations) + [
+                f"cross_segment_duplicate_hazards_deduplicated_{removed_here}"
+            ]
+            result.append(replace(
+                asm,
+                hazards=kept,
+                aggregate_hazard=max(0.0, float(asm.aggregate_hazard) - removed_severity),
+                limitations=new_limitations,
+            ))
+        else:
+            result.append(asm)
+
+    return result, dedup_count
 
 
 class HazardAggregator:

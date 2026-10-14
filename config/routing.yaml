@@ -10,7 +10,10 @@ metadata:
 
 # Provider Connection Settings
 provider:
-  default_provider: "mock"       # Default provider for offline testing and local demo
+  # Live OSRM (keyless OpenStreetMap) is the real-world default. Set to "mock"
+  # (or SAFEROUTE_ROUTING_PROVIDER=mock) for offline/deterministic operation.
+  # Mock routes are synthetic and are NEVER substituted automatically (Rule 10).
+  default_provider: "osrm"
   timeout_seconds: 5.0
   max_retries: 3
   backoff_factor_seconds: 0.5

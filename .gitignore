@@ -1,9 +1,14 @@
 # Secrets & data
 .env
 
+# Runtime SQLite databases (regenerated locally; not source)
+data/*.db
+
 # Large dataset archive & caches
 data/raw/
+data/imagery/
 data/**/*.cache
+DATA-YOLO/
 !data/dataset.yaml
 !data/splits/
 !data/splits/*

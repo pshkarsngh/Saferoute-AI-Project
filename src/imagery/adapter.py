@@ -37,6 +37,7 @@ class PermittedImageryAdapter(ImageryProvider):
         self,
         config_path: Optional[Union[str, Path]] = None,
         config_dict: Optional[Dict[str, Any]] = None,
+        demo_mode: Optional[bool] = None,
     ):
         if config_dict is not None:
             self.config = config_dict
@@ -47,6 +48,14 @@ class PermittedImageryAdapter(ImageryProvider):
                     self.config = yaml.safe_load(f) or {}
             else:
                 self.config = {}
+
+        # PHASE_23B: demo imagery is OFF unless explicitly requested (Rule 9, 20).
+        # When enabled, local sample frames are returned only as clearly-labelled
+        # demo imagery with NO synthesized geographic coordinates.
+        if demo_mode is None:
+            demo_cfg = self.config.get("demo", {}) or {}
+            demo_mode = bool(demo_cfg.get("enabled", False))
+        self.demo_mode = bool(demo_mode)
 
         self.sources_cfg = self.config.get("sources", {})
         self.storage_cfg = self.config.get("storage", {})
@@ -68,7 +77,9 @@ class PermittedImageryAdapter(ImageryProvider):
             flag_as_limitation=bool(self.staleness_cfg.get("flag_stale_as_limitation", True)),
         )
 
-        # In-memory candidate catalog (populated from local workspace archive or registered fixtures)
+        # In-memory candidate catalog. Local sample frames are indexed as
+        # coordinate-less demo entries (never matchable); real candidates are
+        # supplied explicitly via ``register_candidate_images``.
         self._catalogue: List[Dict[str, Any]] = []
         self._load_local_archive_catalog()
 
@@ -123,7 +134,9 @@ class PermittedImageryAdapter(ImageryProvider):
                 limitations=unavail.limitations,
             )
 
-        # Filter catalogue candidates for this source
+        # Filter catalogue candidates for this source. Demo entries (no verified
+        # geography) are held aside so they can never be spatially matched; they
+        # are returned only when demo mode is explicitly enabled.
         source_candidates = [c for c in self._catalogue if c.get("source") == source_name]
         if not source_candidates:
             unavail = ImageryUnavailable(
@@ -142,9 +155,17 @@ class PermittedImageryAdapter(ImageryProvider):
                 limitations=unavail.limitations,
             )
 
-        # Perform spatial matching within 25 meters (ARCHITECTURE §8)
-        matches = self.matcher.match_candidates(segment, source_candidates)
+        demo_candidates = [c for c in source_candidates if c.get("is_demo")]
+        matchable_candidates = [c for c in source_candidates if not c.get("is_demo")]
+
+        # Perform spatial matching within the configured buffer (ARCHITECTURE §8)
+        matches = self.matcher.match_candidates(segment, matchable_candidates)
         if not matches:
+            # PHASE_23B: demo imagery is only ever used when explicitly enabled,
+            # and it is disclosed as NOT geographically matched (Rule 9, Rule 20).
+            if self.demo_mode and demo_candidates:
+                return self._demo_result(segment, source_name, licence, demo_candidates)
+
             unavail = ImageryUnavailable(
                 segment_id=segment.segment_id,
                 reason=ImageryStatus.UNMATCHED,
@@ -184,7 +205,7 @@ class PermittedImageryAdapter(ImageryProvider):
                 licence=licence,
                 retrieved_at=now_iso,
                 captured_at=cap_date,
-                coordinates=tuple(cand.get("coordinates", (0.0, 0.0))),
+                coordinates=tuple(cand["coordinates"]) if cand.get("coordinates") else None,
                 distance_to_segment_m=dist_m,
                 is_stale=is_stale,
                 status=status_str,
@@ -203,23 +224,74 @@ class PermittedImageryAdapter(ImageryProvider):
         )
 
     def _load_local_archive_catalog(self) -> None:
-        """Index local workspace sample images to make them available for matching."""
+        """Index local workspace sample frames as coordinate-less demo entries.
+
+        PHASE_23B: the previous implementation anchored these frames at synthetic
+        Bengaluru coordinates (``77.5946 + idx*0.001`` / ``12.9716 + idx*0.001``),
+        which made unrelated sample images look like geographically matched route
+        evidence. That is removed. Local sample frames are indexed with
+        ``coordinates=None`` and ``is_demo=True`` so the spatial matcher can never
+        match them to a real route segment. They are only ever returned when
+        ``demo_mode`` is explicitly enabled, and always carry an ``is_demo`` marker
+        plus a disclosure limitation (Rule 9, Rule 20).
+
+        Indexing them (rather than omitting them entirely) lets a segment with no
+        verified imagery resolve to an honest ``UNMATCHED`` instead of an
+        ambiguous empty-source result.
+        """
         qual_dir = WORKSPACE_ROOT / "logs" / "evaluation" / "qualitative_samples"
         if not qual_dir.is_dir():
             return
 
-        sample_files = sorted(list(qual_dir.glob("*.jpg")))
-        # Base anchor coordinates around Bangalore center for matching demonstration
-        base_lon, base_lat = 77.5946, 12.9716
-
-        for idx, img_p in enumerate(sample_files):
-            # Create a localized coordinate offset for each sample frame
-            img_lon = base_lon + (idx * 0.001)
-            img_lat = base_lat + (idx * 0.001)
+        for img_p in sorted(list(qual_dir.glob("*.jpg"))):
             self._catalogue.append({
-                "image_id": f"dashcam_{img_p.stem}",
+                "image_id": f"demo_{img_p.stem}",
                 "file_path": str(img_p.resolve()),
                 "source": "workspace_dashcam_v1",
-                "coordinates": (img_lon, img_lat),
-                "captured_at": "2025-02-19T14:30:00Z",  # Dashcam timestamp from file name
+                "coordinates": None,  # no verified geographic location
+                "captured_at": None,  # freshness cannot be verified (honest staleness)
+                "is_demo": True,
             })
+
+    def _demo_result(
+        self,
+        segment: RouteSegment,
+        source_name: str,
+        licence: str,
+        demo_candidates: List[Dict[str, Any]],
+    ) -> ImageryResult:
+        """Build an explicitly-disclosed demo imagery result (never route evidence)."""
+        now_iso = datetime.now(timezone.utc).isoformat()
+        image_refs: List[ImageRef] = []
+        has_any_stale = False
+        for cand in demo_candidates:
+            is_stale, _age, _stale_note = self.staleness_evaluator.evaluate(cand.get("captured_at"))
+            if is_stale:
+                has_any_stale = True
+            image_refs.append(ImageRef(
+                image_id=str(cand.get("image_id", "demo_unknown")),
+                file_path=str(cand.get("file_path", "")),
+                source=source_name,
+                licence=licence,
+                retrieved_at=now_iso,
+                captured_at=cand.get("captured_at"),
+                coordinates=None,
+                distance_to_segment_m=None,
+                is_stale=is_stale,
+                status="stale" if is_stale else "available",
+                is_demo=True,
+            ))
+        limitations = [
+            "demo_imagery_not_geographically_matched",
+            "demo_imagery_not_route_evidence",
+            "missing_imagery_not_safe",
+        ]
+        return ImageryResult(
+            segment_id=segment.segment_id,
+            status=ImageryStatus.STALE if has_any_stale else ImageryStatus.AVAILABLE,
+            images=image_refs,
+            unavailable_detail=None,
+            source=source_name,
+            licence=licence,
+            limitations=limitations,
+        )

@@ -158,6 +158,12 @@ class RouteSafetyResult:
     status: AssessmentStatus = AssessmentStatus.ASSESSED
     segment_scores: List[SegmentScoreResult] = field(default_factory=list)
     limitations: List[str] = field(default_factory=list)
+    hazards_total: int = 0
+    # PHASE_22: categorical outcome so "no detections" is never read as "safe".
+    # hazards_detected | no_hazards_detected | insufficient_coverage |
+    # detector_failed | unassessed
+    detection_outcome: str = "unassessed"
+    safety_note: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -170,5 +176,8 @@ class RouteSafetyResult:
             "segments_count": len(self.segment_scores),
             "segment_scores": [s.to_dict() for s in self.segment_scores],
             "limitations": list(self.limitations),
+            "hazards_total": int(self.hazards_total),
+            "detection_outcome": self.detection_outcome,
+            "safety_note": self.safety_note,
         }
 

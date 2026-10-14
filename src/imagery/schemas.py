@@ -45,6 +45,9 @@ class ImageRef:
     distance_to_segment_m: Optional[float] = None
     is_stale: bool = False
     status: str = "available"
+    # PHASE_23B: explicit marker so demo/sample imagery can never masquerade as
+    # geographically matched route evidence (Rule 9, Rule 20).
+    is_demo: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -58,6 +61,7 @@ class ImageRef:
             "distance_to_segment_m": round(float(self.distance_to_segment_m), 1) if self.distance_to_segment_m is not None else None,
             "is_stale": self.is_stale,
             "status": self.status,
+            "is_demo": self.is_demo,
         }
 
 

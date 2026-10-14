@@ -1,0 +1,775 @@
+{
+  "generated_utc": "2026-10-14T13:58:09.135148+00:00",
+  "sections": {
+    "opencv": {
+      "opencv_version": "4.14.0",
+      "numpy_version": "2.5.3",
+      "sample_image": "D:\\New folder (3)\\data\\pothole_crack_manhole\\data\\images\\20250216_164325.jpg",
+      "imread_ok": true,
+      "original_shape_hwc": [
+        360,
+        640,
+        3
+      ],
+      "color_conversion_ok": true,
+      "resize_ok": true,
+      "letterbox_shape": [
+        640,
+        640,
+        3
+      ],
+      "target_shape": [
+        640,
+        640
+      ],
+      "ratio": [
+        1.0,
+        1.0
+      ],
+      "pad": [
+        0,
+        140
+      ],
+      "pipeline_version": "preprocess-v1",
+      "validate_real_ok": [
+        "ok",
+        true,
+        640,
+        360
+      ],
+      "validate_empty": "empty",
+      "validate_too_small": "too_small",
+      "validate_missing": "unreadable",
+      "inference_tensor_shape": [
+        3,
+        640,
+        640
+      ],
+      "inference_tensor_dtype": "float32",
+      "inference_tensor_range": [
+        0.0,
+        1.0
+      ],
+      "draw_returns_copy": true,
+      "draw_output_exists": true
+    },
+    "detector": {
+      "checkpoint_path": "D:\\New folder (3)\\models\\training\\saferoute-yolo11-v1\\weights\\best.pt",
+      "checkpoint_sha256": "61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65",
+      "model_version": "saferoute-yolo11-v1",
+      "detector_version": "detect-v2",
+      "imgsz": 640,
+      "conf_threshold": 0.15,
+      "iou_threshold": 0.45,
+      "max_det": 300,
+      "supported_classes": {
+        "0": "pothole",
+        "1": "crack"
+      },
+      "model_classes": {
+        "0": "pothole",
+        "1": "crack"
+      },
+      "positive_samples": [
+        {
+          "image": "20250216_164325.jpg",
+          "status": "success",
+          "n": 6,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "crack",
+              "conf": 0.3752,
+              "bbox": [
+                "211.4",
+                "167.6",
+                "411.9",
+                "233.4"
+              ],
+              "norm": [
+                "0.3303",
+                "0.4655",
+                "0.6435",
+                "0.6483"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.3714,
+              "bbox": [
+                "366.6",
+                "178.0",
+                "405.7",
+                "219.6"
+              ],
+              "norm": [
+                "0.5727",
+                "0.4944",
+                "0.6339",
+                "0.61"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.2555,
+              "bbox": [
+                "160.7",
+                "183.9",
+                "200.7",
+                "203.8"
+              ],
+              "norm": [
+                "0.2511",
+                "0.5109",
+                "0.3136",
+                "0.566"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.1646,
+              "bbox": [
+                "370.8",
+                "179.3",
+                "405.0",
+                "216.4"
+              ],
+              "norm": [
+                "0.5794",
+                "0.4982",
+                "0.6328",
+                "0.6011"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.1515,
+              "bbox": [
+                "231.2",
+                "170.7",
+                "360.7",
+                "188.4"
+              ],
+              "norm": [
+                "0.3613",
+                "0.4741",
+                "0.5636",
+                "0.5235"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.1503,
+              "bbox": [
+                "206.0",
+                "225.8",
+                "280.7",
+                "306.2"
+              ],
+              "norm": [
+                "0.3218",
+                "0.6273",
+                "0.4387",
+                "0.8505"
+              ]
+            }
+          ]
+        },
+        {
+          "image": "20250216_164521.jpg",
+          "status": "success",
+          "n": 5,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "crack",
+              "conf": 0.6959,
+              "bbox": [
+                "199.4",
+                "153.5",
+                "289.7",
+                "184.3"
+              ],
+              "norm": [
+                "0.3115",
+                "0.4263",
+                "0.4526",
+                "0.512"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.4463,
+              "bbox": [
+                "126.4",
+                "258.4",
+                "196.2",
+                "355.4"
+              ],
+              "norm": [
+                "0.1974",
+                "0.7178",
+                "0.3065",
+                "0.9871"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.395,
+              "bbox": [
+                "283.5",
+                "224.9",
+                "346.4",
+                "341.9"
+              ],
+              "norm": [
+                "0.443",
+                "0.6248",
+                "0.5413",
+                "0.9497"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.2982,
+              "bbox": [
+                "283.6",
+                "224.2",
+                "336.5",
+                "283.7"
+              ],
+              "norm": [
+                "0.4432",
+                "0.6228",
+                "0.5257",
+                "0.7881"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.2045,
+              "bbox": [
+                "501.5",
+                "165.9",
+                640.0,
+                "262.5"
+              ],
+              "norm": [
+                "0.7836",
+                "0.4607",
+                1.0,
+                "0.7291"
+              ]
+            }
+          ]
+        },
+        {
+          "image": "20250216_164541.jpg",
+          "status": "success",
+          "n": 4,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "pothole",
+              "conf": 0.5862,
+              "bbox": [
+                "337.0",
+                "195.4",
+                "376.7",
+                "227.4"
+              ],
+              "norm": [
+                "0.5265",
+                "0.5427",
+                "0.5886",
+                "0.6317"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.5321,
+              "bbox": [
+                "240.5",
+                "247.4",
+                "304.1",
+                "358.3"
+              ],
+              "norm": [
+                "0.3758",
+                "0.6873",
+                "0.4752",
+                "0.9954"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.2141,
+              "bbox": [
+                "204.6",
+                "186.1",
+                "382.9",
+                "236.1"
+              ],
+              "norm": [
+                "0.3197",
+                "0.5171",
+                "0.5982",
+                "0.6557"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.1634,
+              "bbox": [
+                "179.5",
+                "202.4",
+                "205.7",
+                "216.4"
+              ],
+              "norm": [
+                "0.2804",
+                "0.5623",
+                "0.3213",
+                "0.6011"
+              ]
+            }
+          ]
+        },
+        {
+          "image": "20250219_164649.jpg",
+          "status": "success",
+          "n": 3,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "crack",
+              "conf": 0.3358,
+              "bbox": [
+                "213.7",
+                "123.7",
+                "308.6",
+                "291.0"
+              ],
+              "norm": [
+                "0.3339",
+                "0.3436",
+                "0.4821",
+                "0.8085"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.2636,
+              "bbox": [
+                "218.5",
+                "209.9",
+                "278.2",
+                "342.9"
+              ],
+              "norm": [
+                "0.3414",
+                "0.5829",
+                "0.4347",
+                "0.9526"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.221,
+              "bbox": [
+                "212.3",
+                "81.6",
+                "297.0",
+                "203.3"
+              ],
+              "norm": [
+                "0.3317",
+                "0.2268",
+                "0.4641",
+                "0.5648"
+              ]
+            }
+          ]
+        },
+        {
+          "image": "20250219_164714.jpg",
+          "status": "success",
+          "n": 5,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "pothole",
+              "conf": 0.5732,
+              "bbox": [
+                "88.2",
+                "135.0",
+                "237.2",
+                "188.4"
+              ],
+              "norm": [
+                "0.1378",
+                "0.375",
+                "0.3706",
+                "0.5234"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.4445,
+              "bbox": [
+                "241.5",
+                "106.7",
+                "294.2",
+                "122.8"
+              ],
+              "norm": [
+                "0.3773",
+                "0.2963",
+                "0.4597",
+                "0.341"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.4065,
+              "bbox": [
+                "577.9",
+                "149.5",
+                "630.6",
+                "168.0"
+              ],
+              "norm": [
+                "0.9029",
+                "0.4152",
+                "0.9852",
+                "0.4667"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.4039,
+              "bbox": [
+                "323.3",
+                "151.0",
+                "412.9",
+                "203.7"
+              ],
+              "norm": [
+                "0.5052",
+                "0.4194",
+                "0.6452",
+                "0.5657"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.2491,
+              "bbox": [
+                "340.3",
+                "107.3",
+                "387.8",
+                "123.8"
+              ],
+              "norm": [
+                "0.5317",
+                "0.2981",
+                "0.6059",
+                "0.3438"
+              ]
+            }
+          ]
+        },
+        {
+          "image": "20250219_164738.jpg",
+          "status": "success",
+          "n": 5,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "pothole",
+              "conf": 0.4572,
+              "bbox": [
+                "315.4",
+                "40.3",
+                "376.9",
+                "63.9"
+              ],
+              "norm": [
+                "0.4928",
+                "0.1119",
+                "0.5889",
+                "0.1775"
+              ]
+            },
+            {
+              "cls": "pothole",
+              "conf": 0.3744,
+              "bbox": [
+                "166.1",
+                "127.8",
+                "222.3",
+                "165.7"
+              ],
+              "norm": [
+                "0.2595",
+                "0.3549",
+                "0.3473",
+                "0.4601"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.2,
+              "bbox": [
+                "392.4",
+                "203.1",
+                "483.3",
+                "303.6"
+              ],
+              "norm": [
+                "0.6131",
+                "0.5642",
+                "0.7552",
+                "0.8434"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.1729,
+              "bbox": [
+                "181.6",
+                "34.6",
+                "464.1",
+                "277.8"
+              ],
+              "norm": [
+                "0.2837",
+                "0.0961",
+                "0.7252",
+                "0.7716"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.1667,
+              "bbox": [
+                "208.9",
+                "37.2",
+                "431.3",
+                "142.8"
+              ],
+              "norm": [
+                "0.3263",
+                "0.1033",
+                "0.6739",
+                "0.3966"
+              ]
+            }
+          ]
+        },
+        {
+          "image": "20250219_164746.jpg",
+          "status": "success",
+          "n": 1,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "pothole",
+              "conf": 0.2535,
+              "bbox": [
+                "66.4",
+                "170.2",
+                "135.8",
+                "193.7"
+              ],
+              "norm": [
+                "0.1037",
+                "0.4729",
+                "0.2121",
+                "0.538"
+              ]
+            }
+          ]
+        },
+        {
+          "image": "20250219_164754.jpg",
+          "status": "success",
+          "n": 4,
+          "dims": [
+            640,
+            360
+          ],
+          "dets": [
+            {
+              "cls": "pothole",
+              "conf": 0.4755,
+              "bbox": [
+                "276.0",
+                "137.3",
+                "385.3",
+                "176.4"
+              ],
+              "norm": [
+                "0.4312",
+                "0.3813",
+                "0.6021",
+                "0.49"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.4401,
+              "bbox": [
+                "2.2",
+                "101.0",
+                "397.1",
+                "230.2"
+              ],
+              "norm": [
+                "0.0035",
+                "0.2805",
+                "0.6205",
+                "0.6394"
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.3419,
+              "bbox": [
+                "35.4",
+                "333.8",
+                "148.9",
+                360.0
+              ],
+              "norm": [
+                "0.0553",
+                "0.9273",
+                "0.2327",
+                1.0
+              ]
+            },
+            {
+              "cls": "crack",
+              "conf": 0.1858,
+              "bbox": [
+                "204.2",
+                "145.1",
+                "362.1",
+                "221.2"
+              ],
+              "norm": [
+                "0.319",
+                "0.403",
+                "0.5658",
+                "0.6143"
+              ]
+            }
+          ]
+        }
+      ],
+      "blank_negative": {
+        "status": "no_detections",
+        "n": 0
+      }
+    },
+    "thresholds_and_pipeline": {
+      "detector_conf_threshold": 0.15,
+      "aggregator_confidence_threshold": 0.25,
+      "thresholds_consistent": false,
+      "sample_images": 15,
+      "raw_detections_at_detector_conf": 56,
+      "detections_dropped_by_aggregator": 20,
+      "detections_kept_by_aggregator": 36,
+      "raw_conf_min_max": [
+        0.1503,
+        0.6959
+      ],
+      "trace_positive": {
+        "image": "20250216_164325.jpg",
+        "detector_status": "success",
+        "raw_dets": 6,
+        "segment_hazards": 3,
+        "aggregate_hazard": 6.27,
+        "segment_status": "assessed",
+        "coverage": 1.0,
+        "route_score": 4.35,
+        "route_status": "assessed"
+      },
+      "trace_zero_detection": {
+        "segment_hazards": 0,
+        "aggregate_hazard": 0.0,
+        "segment_status": "assessed",
+        "coverage": 1.0,
+        "route_score": 100.0,
+        "route_status": "assessed"
+      }
+    },
+    "labelled_eval_conf_0.15": {
+      "split": "test.txt",
+      "images_evaluated": 40,
+      "conf_threshold": 0.15,
+      "iou_match": 0.5,
+      "TP": 14,
+      "FP": 83,
+      "FN": 50,
+      "precision": 0.1443,
+      "recall": 0.2188,
+      "per_class": {
+        "pothole": {
+          "TP": 5,
+          "FP": 22,
+          "FN": 34
+        },
+        "crack": {
+          "TP": 9,
+          "FP": 61,
+          "FN": 16
+        }
+      }
+    },
+    "labelled_eval_conf_0.25": {
+      "split": "test.txt",
+      "images_evaluated": 40,
+      "conf_threshold": 0.25,
+      "iou_match": 0.5,
+      "TP": 11,
+      "FP": 46,
+      "FN": 53,
+      "precision": 0.193,
+      "recall": 0.1719,
+      "per_class": {
+        "pothole": {
+          "TP": 3,
+          "FP": 13,
+          "FN": 36
+        },
+        "crack": {
+          "TP": 8,
+          "FP": 33,
+          "FN": 17
+        }
+      }
+    }
+  }
+}

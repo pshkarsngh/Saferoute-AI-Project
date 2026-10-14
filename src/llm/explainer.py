@@ -128,6 +128,10 @@ class GroundedExplanationService:
                 frac = (r.get("coverage") or {}).get("fraction")
                 parts.append(f"Route '{r['route_id']}': score {r['route_score']} (coverage {frac:.0%}).")
                 ref_routes.append(r["route_id"])
+                if r.get("detection_outcome") == "no_hazards_detected":
+                    parts.append(f"Route '{r['route_id']}' had imagery assessed with no "
+                                 f"supported hazards detected, which is NOT proof the road is safe.")
+                    disclosures.append("no_hazards_detected_not_proof_of_safety")
                 for h in r.get("hazards", []):
                     if h.get("hazard_class") not in ref_hazards:
                         ref_hazards.append(h["hazard_class"])

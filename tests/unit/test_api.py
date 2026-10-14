@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from src.api.app import SafeRouteAPI, create_server
 from src.api.pipeline import SafetyAnalysisPipeline
 from src.api.store import AnalysisStore
+from src.geocoding.mock_geocoder import MockGeocoder
 from src.detection.schemas import DetectionStatus, ImageDetectionResult
 from src.imagery.interfaces import ImageryProvider
 from src.imagery.schemas import ImageRef, ImageryResult, ImageryStatus
@@ -76,7 +77,7 @@ class TestApiPipeline(unittest.TestCase):
         store = AnalysisStore(db_path=self.db)
         self.pipeline = SafetyAnalysisPipeline(
             imagery_adapter=HalfImageryProvider(), detector=FakeDetector())
-        self.api = SafeRouteAPI(pipeline=self.pipeline, store=store)
+        self.api = SafeRouteAPI(pipeline=self.pipeline, store=store, geocoder=MockGeocoder())
 
     def tearDown(self):
         if self.db.exists():
@@ -115,10 +116,15 @@ class TestApiPipeline(unittest.TestCase):
             self.assertIsNone(r["route_score"])
 
     def test_invalid_coordinates_rejected(self):
-        code, obj = self.api.analyze({"destination": "MG Road, Bangalore"})
+        code, obj = self.api.analyze({"destination": "zzzz nowhere place xyz"})
         self.assertEqual(code, 400)
         self.assertEqual(obj["status"], "failed")
         self.assertIn("code", obj["error"])
+
+    def test_place_name_destination_geocoded(self):
+        code, rec = self.api.analyze({"destination_query": "Koramangala"})
+        self.assertEqual(code, 200)
+        self.assertEqual(rec["destination"]["latitude"], 12.9352)
 
 
 class FailingRoutingProvider:
@@ -145,7 +151,7 @@ class TestApiNegativeAndHttp(unittest.TestCase):
 
     def _api(self, **kw):
         pipeline = SafetyAnalysisPipeline(detector=FakeDetector(), **kw)
-        return SafeRouteAPI(pipeline=pipeline, store=self.store)
+        return SafeRouteAPI(pipeline=pipeline, store=self.store, geocoder=MockGeocoder())
 
     def test_routing_failure_surfaces_error_no_fabricated_routes(self):
         api = self._api(routing_provider=FailingRoutingProvider(), imagery_adapter=AllMissingImageryProvider())

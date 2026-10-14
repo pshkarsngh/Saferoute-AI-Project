@@ -1,0 +1,22 @@
+# SafeRoute AI — Geocoding Configuration
+# Follows master_rules.md Rules 8, 13, 17, 19.
+#
+# Keyless OpenStreetMap Nominatim is the default. It requires a descriptive
+# User-Agent and <= 1 request/second (honoured by the adapter).
+
+metadata:
+  version: "geocoding-v1"
+  date: "2026-10-14"
+
+provider: "nominatim"          # nominatim | mock
+
+nominatim:
+  base_url: "https://nominatim.openstreetmap.org"
+  user_agent: "SafeRouteAI/1.0 (road-safety research)"
+  timeout_seconds: 10.0
+  max_retries: 2
+  # Optional bias to one or more ISO-3166 country codes (comma separated), e.g. "in".
+  country_codes: ""
+
+# Attribution is required when displaying Nominatim results (ODbL).
+attribution: "Geocoding data (c) OpenStreetMap contributors (ODbL)"
