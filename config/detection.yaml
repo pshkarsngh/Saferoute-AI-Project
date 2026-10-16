@@ -7,10 +7,13 @@
 
 metadata:
   version: "detect-v2"
-  model_version: "saferoute-yolo11-v1"
+  model_version: "saferoute-yolo11-v2"
 
+# PHASE_24G: serving checkpoint promoted to v2 (per PHASE_24F recommendation,
+# 601-image unseen micro F1 0.297 -> 0.327 at conf 0.25). Confidence and all
+# other inference settings are intentionally unchanged.
 model:
-  checkpoint: "models/training/saferoute-yolo11-v1/weights/best.pt"
+  checkpoint: "models/training/saferoute-yolo11-v2/weights/best.pt"
 
 inference:
   imgsz: 640            # inference resolution (higher can help small cracks)

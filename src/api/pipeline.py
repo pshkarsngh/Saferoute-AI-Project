@@ -21,7 +21,7 @@ from src.risk.schemas import AssessmentStatus
 from src.routing.adapter import create_routing_adapter
 from src.routing.schemas import Coordinate, RouteRequest, RoutingStatus
 
-MODEL_VERSION = "saferoute-yolo11-v1"
+MODEL_VERSION = "saferoute-yolo11-v2"
 
 
 class SafetyAnalysisPipeline:

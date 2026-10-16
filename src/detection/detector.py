@@ -1,7 +1,7 @@
 """SafeRoute AI — Versioned Hazard Detection Module.
 
 Module Version: detect-v1
-Model Version: saferoute-yolo11-v1
+Model Version: resolved per loaded checkpoint (default serving: saferoute-yolo11-v2)
 Governing rules: master_rules.md Rules 1, 4, 5, 6, 7, 9, 12, 14, 16, 18, 20.
 TRD §7, ARCHITECTURE §4, §5.7, §6.
 """
@@ -27,7 +27,7 @@ from src.detection.schemas import (
 )
 
 __version__ = "detect-v2"
-MODEL_VERSION = "saferoute-yolo11-v1"
+MODEL_VERSION = "saferoute-yolo11-v2"
 
 # Supported target classes verified from PHASE_03 audit and PHASE_07/08
 SUPPORTED_CLASSES = {
@@ -35,7 +35,7 @@ SUPPORTED_CLASSES = {
     1: "crack",
 }
 
-DEFAULT_CHECKPOINT_REL = Path("models/training/saferoute-yolo11-v1/weights/best.pt")
+DEFAULT_CHECKPOINT_REL = Path("models/training/saferoute-yolo11-v2/weights/best.pt")
 DEFAULT_DETECTION_CONFIG = Path("config/detection.yaml")
 
 
@@ -64,7 +64,6 @@ class HazardDetector:
         config_dict: Optional[Dict[str, Any]] = None,
     ):
         self.detector_version = __version__
-        self.model_version = MODEL_VERSION
 
         if workspace_root is None:
             self.workspace_root = Path(__file__).resolve().parent.parent.parent
@@ -88,9 +87,23 @@ class HazardDetector:
         self.batch = int(inf.get("batch", 1))
 
         if checkpoint_path is None:
-            self.checkpoint_path = (self.workspace_root / DEFAULT_CHECKPOINT_REL).resolve()
+            # PHASE_24G: the serving checkpoint is taken from the detection
+            # configuration (config/detection.yaml -> model.checkpoint) so the
+            # promoted checkpoint is actually what gets loaded. The module
+            # constant below is only a fallback when that key/config is absent.
+            configured_ckpt = (cfg.get("model") or {}).get("checkpoint")
+            if configured_ckpt:
+                self.checkpoint_path = (self.workspace_root / Path(str(configured_ckpt))).resolve()
+            else:
+                self.checkpoint_path = (self.workspace_root / DEFAULT_CHECKPOINT_REL).resolve()
         else:
             self.checkpoint_path = Path(checkpoint_path).resolve()
+
+        # model_version identifies the checkpoint that was ACTUALLY loaded
+        # (src/detection/schemas.py: "Checkpoint model identifier"), not merely
+        # the configured serving release. This keeps explicitly-supplied
+        # checkpoints (e.g. the v1 model) correctly labelled.
+        self.model_version = self._resolve_model_version()
 
         # Workspace isolation verification (Rule 1)
         self._verify_workspace_path(self.checkpoint_path, "Checkpoint path")
@@ -118,6 +131,24 @@ class HazardDetector:
             path.relative_to(self.workspace_root)
         except ValueError:
             raise RuntimeError(f"Rule 1 violation: {label} '{path}' is outside workspace '{self.workspace_root}'.")
+
+    def _resolve_model_version(self) -> str:
+        """Return the model identifier of the checkpoint actually loaded.
+
+        ``model_version`` is the "checkpoint model identifier" that produced the
+        detections (``src/detection/schemas.py``), i.e. the loaded weights, not a
+        fixed serving label. The project stores each trained model at
+        ``models/training/<identifier>/weights/<file>.pt`` (TRD §5.6,
+        ARCHITECTURE §5.6), so the canonical identifier is the model directory
+        name. Custom paths that do not follow that layout fall back to the
+        default serving identifier (``MODEL_VERSION``).
+        """
+        parts = self.checkpoint_path.parts
+        if len(parts) >= 3 and parts[-2] == "weights":
+            candidate = parts[-3]
+            if candidate.startswith("saferoute-yolo11-"):
+                return candidate
+        return MODEL_VERSION
 
     def _load_model(self):
         """Explicitly load the approved checkpoint weights."""
