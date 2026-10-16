@@ -1,0 +1,16 @@
+# SafeRoute AI — derived TWO-class dataset configuration (PHASE 24C)
+# Derived from the approved PHASE_24B decisions (M1 + P-B).
+# Originals are NOT modified. Do not overwrite data/dataset.yaml.
+# Rules: master_rules.md 1, 5, 9, 14, 15, 17, 18, 20.
+
+path: D:/New folder (3)/data/derived_2class
+
+train: D:/New folder (3)/data/splits_v2/train.txt
+val: D:/New folder (3)/data/splits_v2/val.txt
+test: D:/New folder (3)/data/splits_v2/test.txt
+
+# Derived two-class mapping: manhole (class 2) removed only in the
+# derived labels; the original annotation is preserved unchanged.
+names:
+  0: pothole
+  1: crack
