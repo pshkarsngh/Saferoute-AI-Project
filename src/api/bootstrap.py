@@ -36,20 +36,34 @@ def build_imagery_provider(settings: Settings):
     PHASE_23B: the local adapter no longer fabricates geographic coordinates, so
     it never presents sample imagery as evidence for a real route segment. It is
     placed in demo mode only when explicitly configured (Rule 9, Rule 20).
+
+    PHASE_25 safeguard: when ``imagery_source`` is explicitly ``mapillary`` we
+    ALWAYS use the Mapillary provider, even when no access token is configured.
+    With no token it takes its established missing-token path, reporting each
+    segment as explicitly unavailable and disclosing the substitution. The local
+    archive fallback used on that path is forced into NON-demo mode, so a missing
+    token can never cause the live pipeline to return demo sample frames as route
+    evidence (Rule 9, Rule 20).
     """
     local = PermittedImageryAdapter(demo_mode=settings.imagery_demo_mode)
-    if settings.imagery_source == "mapillary" and settings.mapillary_token:
+    if settings.imagery_source == "mapillary":
+        # Never silently substitute a demo-capable local adapter for a missing
+        # token: the fallback is only demo-capable when a token actually exists
+        # (where it is unreachable anyway). Without a token the disclosed local
+        # archive fallback is non-demo, so it yields honest UNMATCHED results.
+        fallback = local if settings.mapillary_token else PermittedImageryAdapter(demo_mode=False)
         return MapillaryImageryProvider(
-            token=settings.mapillary_token,
+            token=settings.mapillary_token or "",
             max_images=settings.mapillary_max_images,
             search_radius_m=settings.mapillary_search_radius_m,
             thumbnail_width=settings.mapillary_thumbnail_width,
             download_thumbnails=settings.mapillary_download,
             http=None,
-            fallback=local,
-            is_source_permitted=local.is_source_permitted,
+            fallback=fallback,
+            is_source_permitted=fallback.is_source_permitted,
         )
-    # No token: honest local mode (real imagery only; demo only if explicitly on).
+    # Explicitly non-Mapillary source (e.g. workspace_dashcam_v1): honest local
+    # mode, with demo imagery only when explicitly configured (Rule 9, Rule 20).
     return local
 
 

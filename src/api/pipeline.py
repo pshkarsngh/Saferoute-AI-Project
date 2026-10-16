@@ -16,6 +16,7 @@ from src.facilities.service import FacilitiesService
 from src.imagery.adapter import PermittedImageryAdapter
 from src.llm.explainer import GroundedExplanationService
 from src.risk.aggregate import HazardAggregator, deduplicate_adjacent_segment_hazards
+from src.risk.comparison import RouteComparer, assessed_length_fraction
 from src.risk.engine import DeterministicRiskEngine
 from src.risk.schemas import AssessmentStatus
 from src.routing.adapter import create_routing_adapter
@@ -36,6 +37,7 @@ class SafetyAnalysisPipeline:
         engine=None,
         facilities_service=None,
         explainer=None,
+        comparer=None,
     ):
         self.routing = routing_provider or create_routing_adapter("mock")
         self.imagery = imagery_adapter or PermittedImageryAdapter()
@@ -44,6 +46,7 @@ class SafetyAnalysisPipeline:
         self.engine = engine or DeterministicRiskEngine()
         self.facilities = facilities_service or FacilitiesService()
         self.explainer = explainer or GroundedExplanationService()
+        self.comparer = comparer or RouteComparer()
         self.model_version = MODEL_VERSION
         self.config_hash = self.engine.config_hash
 
@@ -94,7 +97,7 @@ class SafetyAnalysisPipeline:
         for route in resp.routes:
             record["routes"].append(self._analyze_route(route))
 
-        record["comparison"] = self._build_comparison(record["routes"])
+        record["comparison"] = self._build_comparison(record["routes"], assessed_at=record["created_at"])
         record["recommendation"] = record["comparison"]["recommended_route_id"]
         record["status"] = self._overall_status(record["routes"])
         record["explanation"] = self.explainer.explain(record).to_dict()
@@ -145,27 +148,35 @@ class SafetyAnalysisPipeline:
         result["segments"] = [s.to_dict() for s in route.segments]
         result["hazards"] = hazard_records
         result["imagery"] = imagery_meta
+
+        # PHASE_25: classify the evidence actually used for this route. Demo imagery
+        # is not geographically matched to the requested roads, so a route scored
+        # from it is labelled and excluded from the real-world recommendation
+        # (Rule 9, Rule 20).
+        demo_used = any(
+            img.get("is_demo")
+            for meta in imagery_meta
+            for img in (meta.get("images") or [])
+        )
+        result["evidence_class"] = "demo" if demo_used else "real"
+        result["assessed_length_fraction"] = assessed_length_fraction(result)
+        if demo_used:
+            result["limitations"] = list(result.get("limitations", [])) + [
+                "Demo imagery (not geographically matched to this route) contributed to "
+                "this score; it is pipeline-demonstration evidence only and is excluded "
+                "from the real-world recommendation (Rule 9, Rule 20)."
+            ]
         return result
 
-    def _build_comparison(self, routes: List[Dict[str, Any]]) -> Dict[str, Any]:
-        assessed = [r for r in routes if r.get("route_score") is not None]
-        unassessed = [r for r in routes if r.get("route_score") is None]
-        ranked = sorted(assessed, key=lambda r: r["route_score"], reverse=True)
-        return {
-            "ranking": [
-                {"route_id": r["route_id"], "route_score": r["route_score"],
-                 "status": r["status"], "coverage": r.get("coverage"), "distance_m": r.get("distance_m"),
-                 "hazards_total": r.get("hazards_total", 0),
-                 "detection_outcome": r.get("detection_outcome", "unassessed"),
-                 "safety_note": r.get("safety_note", "")}
-                for r in ranked
-            ],
-            "recommended_route_id": ranked[0]["route_id"] if ranked else None,
-            "unassessed_route_ids": [r["route_id"] for r in unassessed],
-            "note": ("Unassessed routes are never ranked or presented as safe (Rule 9). "
-                     "A score of 100 means no supported hazard was detected in the "
-                     "available imagery — it is NOT proof the road is safe."),
-        }
+    def _build_comparison(self, routes: List[Dict[str, Any]],
+                          assessed_at: Optional[str] = None) -> Dict[str, Any]:
+        """Delegate ranking/recommendation to the deterministic RouteComparer (PHASE_25).
+
+        The comparer only compares already-computed deterministic scores; it never
+        calculates or alters a score (Rule 7) and never recommends using demo
+        imagery, insufficient coverage, or a tie (Rules 9, 12, 14, 20).
+        """
+        return self.comparer.build(routes, assessed_at=assessed_at)
 
     def _overall_status(self, routes: List[Dict[str, Any]]) -> str:
         if not routes or all(r.get("route_score") is None for r in routes):

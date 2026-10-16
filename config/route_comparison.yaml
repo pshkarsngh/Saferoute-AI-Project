@@ -1,0 +1,30 @@
+# SafeRoute AI — Route Comparison & Recommendation Policy
+# Follows master_rules.md Rules 7, 9, 10, 12, 14, 17, 20.
+#
+# This policy governs ONLY how already-computed deterministic route scores are
+# compared and how a recommendation is (or is not) issued. It never computes,
+# alters or invents a safety score (Rule 7); it only decides whether the
+# available evidence supports a defensible comparison (Rule 9).
+
+metadata:
+  policy_version: "comparison-v1"
+  description: "Deterministic safest-route recommendation policy."
+
+recommendation:
+  # Minimum fraction of a route's total segment length that must carry a
+  # deterministic score before that route is eligible for recommendation.
+  # Aligned with the risk engine's minimum coverage threshold (0.50).
+  min_assessed_length_fraction: 0.50
+
+  # Two routes are treated as tied when |score_a - score_b| <= this tolerance.
+  # With 0.0 only exactly-equal (2-decimal) scores count as a tie. A tie means
+  # the evidence does NOT support declaring one route safer -> no recommendation.
+  tie_tolerance_score: 0.0
+
+guardrails:
+  # Demo imagery is never geographically matched to the requested roads, so a
+  # demo-derived score must never produce a real-world recommendation
+  # (Rule 9, Rule 20).
+  never_recommend_demo_evidence: true
+  # Unassessed routes are never ranked or presented as safe (Rule 9).
+  never_rank_unassessed: true

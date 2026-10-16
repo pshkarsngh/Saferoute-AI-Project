@@ -13,6 +13,10 @@ DATA-YOLO/
 !data/splits/
 !data/splits/*
 
+# Prepared DATA-YOLO two-class dataset (~373 MB of images/labels).
+# Regenerated deterministically by scripts/prepare_datayolo_2class.py; not committed.
+data/datayolo_prep/
+
 # Python
 __pycache__/
 *.py[cod]

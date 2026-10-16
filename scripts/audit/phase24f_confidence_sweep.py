@@ -81,6 +81,7 @@ CLASS_NAMES = {0: "pothole", 1: "crack"}
 CHECKPOINTS = {
     "v1": WORKSPACE_ROOT / "models" / "training" / "saferoute-yolo11-v1" / "weights" / "best.pt",
     "v2": WORKSPACE_ROOT / "models" / "training" / "saferoute-yolo11-v2" / "weights" / "best.pt",
+    "datayolo": WORKSPACE_ROOT / "models" / "training" / "saferoute-yolo11-datayolo-exp" / "weights" / "best.pt",
 }
 CONFIGURED_CHECKPOINT_REL = Path("models/training/saferoute-yolo11-v1/weights/best.pt")
 

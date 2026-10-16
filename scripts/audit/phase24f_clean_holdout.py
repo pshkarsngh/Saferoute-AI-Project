@@ -78,7 +78,7 @@ def unseen_image_paths() -> List[Path]:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--checkpoint", choices=["v1", "v2"], required=True)
+    ap.add_argument("--checkpoint", choices=["v1", "v2", "datayolo"], required=True)
     ap.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args(argv)
