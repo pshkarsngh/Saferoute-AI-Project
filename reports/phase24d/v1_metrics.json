@@ -1,0 +1,212 @@
+{
+  "phase": "PHASE_24D",
+  "mode": "eval",
+  "checkpoint_tag": "v1",
+  "timestamp_utc": "2026-10-15T20:22:01.097020+00:00",
+  "git": {
+    "head": "5645dcb57e3279ce059c98250e0674684eb6e9da",
+    "branch": "main"
+  },
+  "identity": {
+    "checkpoint_path": "D:\\New folder (3)\\models\\training\\saferoute-yolo11-v1\\weights\\best.pt",
+    "checkpoint_sha256": "61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65",
+    "dataset_config_path": "D:\\New folder (3)\\data\\dataset_v2.yaml",
+    "dataset_config_sha256": "98EDD97ADDF2F72779335E6622D575C0C3B88E2C7BDF88ADAD31BDD3D62C1912",
+    "split_sha256": {
+      "train": "3DC10C151E939C283328A6E615B51BCD25607A3C2CDDEB296A9062F967CC5978",
+      "val": "37D92842313D013C6030B857EC81C22FF4FD4B051AAD011AF25E89B8011621A1",
+      "test": "AABA32ABA36C668145017715CC4C9190D0C58457EBE6CD66D515EF9BE0325D07"
+    },
+    "model_names": {
+      "0": "pothole",
+      "1": "crack"
+    },
+    "num_classes": 2
+  },
+  "command": ".\\.venv\\Scripts\\python.exe scripts\\audit\\phase24d_evaluate_holdout.py eval v1",
+  "eval_params": {
+    "data": "D:\\New folder (3)\\data\\dataset_v2.yaml",
+    "split": "test",
+    "imgsz": 640,
+    "batch": 16,
+    "device": "cpu",
+    "cache": false,
+    "plots": true,
+    "save_json": false,
+    "project": "D:\\New folder (3)\\reports\\phase24d",
+    "name": "v1_ultralytics_test",
+    "exist_ok": true,
+    "verbose": true
+  },
+  "effective_thresholds": {
+    "mAP_conf": 0.001,
+    "mAP_iou_nms": 0.7,
+    "confusion_matrix_conf": 0.25,
+    "confusion_matrix_iou_nms": 0.45,
+    "max_det": 300,
+    "note": "Ultralytics defaults; conf/iou not overridden so both checkpoints share identical settings."
+  },
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0",
+    "cuda_available": true,
+    "device_name": "NVIDIA GeForce RTX 5050 Laptop GPU",
+    "ultralytics": "8.4.163",
+    "opencv": "4.14.0",
+    "numpy": "2.5.3"
+  },
+  "device_selection": {
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 5050 Laptop GPU",
+    "vram_free_mib": 1534.8,
+    "vram_total_mib": 8123.4,
+    "reason": "CUDA available but free VRAM below 3.5 GiB threshold (1534.8 MiB free) \u2014 likely a competing GPU process; falling back to CPU for a valid, reproducible evaluation."
+  },
+  "holdout": {
+    "split": "test",
+    "images_in_split_file": 216,
+    "images_evaluated": 216,
+    "gt_boxes_total": 390,
+    "gt_boxes_by_class": {
+      "0": 98,
+      "1": 292
+    },
+    "gt_images_with_class": {
+      "0": 72,
+      "1": 155
+    }
+  },
+  "metrics": {
+    "overall": {
+      "precision": 0.535967,
+      "recall": 0.561714,
+      "f1": 0.548538,
+      "mAP50": 0.484221,
+      "mAP50_95": 0.251214
+    },
+    "per_class": [
+      {
+        "class_id": 0,
+        "class_name": "pothole",
+        "precision": 0.349807,
+        "recall": 0.479592,
+        "f1": 0.404545,
+        "mAP50": 0.268605,
+        "mAP50_95": 0.124931
+      },
+      {
+        "class_id": 1,
+        "class_name": "crack",
+        "precision": 0.722127,
+        "recall": 0.643836,
+        "f1": 0.680738,
+        "mAP50": 0.699838,
+        "mAP50_95": 0.377497
+      }
+    ],
+    "maps_per_class_50_95": [
+      0.124931,
+      0.377497
+    ]
+  },
+  "confusion_matrix": {
+    "axis_convention": "rows = predicted, columns = true (last row = predicted background/FN, last column = true background/FP) \u2014 Ultralytics ConfusionMatrix.matrix",
+    "labels": [
+      "pothole",
+      "crack",
+      "background"
+    ],
+    "matrix": [
+      [
+        50.0,
+        5.0,
+        100.0
+      ],
+      [
+        0.0,
+        202.0,
+        87.0
+      ],
+      [
+        48.0,
+        85.0,
+        0.0
+      ]
+    ],
+    "summary_counts": [
+      {
+        "Predicted": "pothole",
+        "pothole": 50.0,
+        "crack": 5.0,
+        "background": 100.0
+      },
+      {
+        "Predicted": "crack",
+        "pothole": 0.0,
+        "crack": 202.0,
+        "background": 87.0
+      },
+      {
+        "Predicted": "background",
+        "pothole": 48.0,
+        "crack": 85.0,
+        "background": 0.0
+      }
+    ],
+    "summary_normalized": [
+      {
+        "Predicted": "pothole",
+        "pothole": 0.5102,
+        "crack": 0.01712,
+        "background": 0.53476
+      },
+      {
+        "Predicted": "crack",
+        "pothole": 0.0,
+        "crack": 0.69178,
+        "background": 0.46524
+      },
+      {
+        "Predicted": "background",
+        "pothole": 0.4898,
+        "crack": 0.2911,
+        "background": 0.0
+      }
+    ]
+  },
+  "speed_per_image_ms": {
+    "preprocess": 2.607,
+    "inference": 88.95,
+    "loss": 0.0,
+    "postprocess": 2.968
+  },
+  "duration_seconds": 35.813,
+  "results_save_dir": "D:\\New folder (3)\\reports\\phase24d\\v1_ultralytics_test",
+  "data_integrity": {
+    "before": {
+      "derived_labels_merkle": "0C15D6AF395335FC6FAF06A90F6261BEFFFA05A78C9A4C114B936FBB01158142",
+      "derived_labels_count": 1792,
+      "derived_root_files": {
+        "MANIFEST.json": "3FFF746E519F6508908AC1EF233DD24BEE84AD7D487AEC1D43B098FAC1475559",
+        "README.md": "EED3CFE2E02DDAA36C7FC68E9FADE27989DBF4940D62B3784E30B5EE42B871DD"
+      },
+      "labels_cache_present": false,
+      "labels_cache_sha256": null
+    },
+    "after": {
+      "derived_labels_merkle": "0C15D6AF395335FC6FAF06A90F6261BEFFFA05A78C9A4C114B936FBB01158142",
+      "derived_labels_count": 1792,
+      "derived_root_files": {
+        "MANIFEST.json": "3FFF746E519F6508908AC1EF233DD24BEE84AD7D487AEC1D43B098FAC1475559",
+        "README.md": "EED3CFE2E02DDAA36C7FC68E9FADE27989DBF4940D62B3784E30B5EE42B871DD"
+      },
+      "labels_cache_present": true,
+      "labels_cache_sha256": "1EFA49072341947346634680CB19A13214B31639DA16054CD0306964CE5C9BCB"
+    },
+    "content_unchanged": true,
+    "cache_created_by_eval": true,
+    "note": "Ultralytics writes labels.cache next to the derived labels when scanning; it is a disposable generated artifact and is removed after evaluation."
+  }
+}

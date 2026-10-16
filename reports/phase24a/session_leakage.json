@@ -1,0 +1,65 @@
+{
+  "phase": "PHASE_24A-supplementary",
+  "method": "filename session heuristic + exhaustive in-session dHash hamming<=6",
+  "session_heuristic": "vlcsnap timestamp (second precision); Image/frame/Name(n) sequences bucketed per 500 frames; other names by prefix",
+  "images": 2009,
+  "undecodable": [],
+  "sessions_total": 1684,
+  "session_size_histogram": {
+    "1": 1670,
+    "2-10": 11,
+    "11-100": 2,
+    "101-400": 1,
+    ">400": 0
+  },
+  "sessions_spanning_multiple_splits": [
+    {
+      "session": "20250219",
+      "distribution": {
+        "train": 36,
+        "test": 5,
+        "val": 19
+      }
+    },
+    {
+      "session": "20250223",
+      "distribution": {
+        "train": 8,
+        "val": 16,
+        "test": 15
+      }
+    }
+  ],
+  "within_split_near_pairs": 58,
+  "cross_split_near_pairs_exhaustive": 0,
+  "cross_split_examples": [],
+  "within_split_examples": [
+    [
+      "20250223_143954.jpg",
+      "20250223_143958.jpg",
+      "val"
+    ],
+    [
+      "vlcsnap-00007.jpg",
+      "vlcsnap-00030.jpg",
+      "train"
+    ],
+    [
+      "vlcsnap-00007.jpg",
+      "vlcsnap-00031.jpg",
+      "train"
+    ],
+    [
+      "vlcsnap-00007.jpg",
+      "vlcsnap-00032.jpg",
+      "train"
+    ],
+    [
+      "vlcsnap-00007.jpg",
+      "vlcsnap-00037.jpg",
+      "train"
+    ]
+  ],
+  "sessions_skipped_too_large": [],
+  "interpretation": "cross-split near pairs found by this exhaustive in-session scan indicate residual same-sequence leakage across splits; sessions skipped (>400 imgs) are large video bursts whose cross-split status was NOT verified here."
+}

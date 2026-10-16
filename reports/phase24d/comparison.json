@@ -1,0 +1,158 @@
+{
+  "phase": "PHASE_24D",
+  "timestamp_utc": "2026-10-15T20:24:45.259248+00:00",
+  "holdout": {
+    "dataset_config": "D:\\New folder (3)\\data\\dataset_v2.yaml",
+    "split": "test",
+    "images": 216,
+    "gt_boxes": 390,
+    "gt_boxes_by_class": {
+      "0": 98,
+      "1": 292
+    },
+    "same_holdout_for_both": true
+  },
+  "identical_eval_settings": true,
+  "eval_params_compared": {
+    "data": "D:\\New folder (3)\\data\\dataset_v2.yaml",
+    "split": "test",
+    "imgsz": 640,
+    "batch": 16,
+    "device": "cpu",
+    "cache": false,
+    "plots": true,
+    "save_json": false,
+    "project": "D:\\New folder (3)\\reports\\phase24d",
+    "exist_ok": true,
+    "verbose": true
+  },
+  "device": "cpu",
+  "checkpoints": {
+    "v1": "61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65",
+    "v2": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA"
+  },
+  "overall": {
+    "precision": {
+      "v1": 0.535967,
+      "v2": 0.573405,
+      "abs_diff": 0.037438,
+      "rel_diff_pct": 6.985
+    },
+    "recall": {
+      "v1": 0.561714,
+      "v2": 0.701783,
+      "abs_diff": 0.140069,
+      "rel_diff_pct": 24.936
+    },
+    "f1": {
+      "v1": 0.548538,
+      "v2": 0.631131,
+      "abs_diff": 0.082593,
+      "rel_diff_pct": 15.057
+    },
+    "mAP50": {
+      "v1": 0.484221,
+      "v2": 0.579049,
+      "abs_diff": 0.094828,
+      "rel_diff_pct": 19.584
+    },
+    "mAP50_95": {
+      "v1": 0.251214,
+      "v2": 0.328326,
+      "abs_diff": 0.077112,
+      "rel_diff_pct": 30.696
+    }
+  },
+  "per_class": {
+    "pothole": {
+      "precision": {
+        "v1": 0.349807,
+        "v2": 0.414236,
+        "abs_diff": 0.064429,
+        "rel_diff_pct": 18.418
+      },
+      "recall": {
+        "v1": 0.479592,
+        "v2": 0.653061,
+        "abs_diff": 0.173469,
+        "rel_diff_pct": 36.17
+      },
+      "mAP50": {
+        "v1": 0.268605,
+        "v2": 0.3785,
+        "abs_diff": 0.109895,
+        "rel_diff_pct": 40.913
+      },
+      "mAP50_95": {
+        "v1": 0.124931,
+        "v2": 0.192203,
+        "abs_diff": 0.067272,
+        "rel_diff_pct": 53.847
+      }
+    },
+    "crack": {
+      "precision": {
+        "v1": 0.722127,
+        "v2": 0.732573,
+        "abs_diff": 0.010446,
+        "rel_diff_pct": 1.447
+      },
+      "recall": {
+        "v1": 0.643836,
+        "v2": 0.750504,
+        "abs_diff": 0.106668,
+        "rel_diff_pct": 16.568
+      },
+      "mAP50": {
+        "v1": 0.699838,
+        "v2": 0.779598,
+        "abs_diff": 0.07976,
+        "rel_diff_pct": 11.397
+      },
+      "mAP50_95": {
+        "v1": 0.377497,
+        "v2": 0.464449,
+        "abs_diff": 0.086952,
+        "rel_diff_pct": 23.034
+      }
+    }
+  },
+  "confusion_matrices": {
+    "v1": [
+      [
+        50.0,
+        5.0,
+        100.0
+      ],
+      [
+        0.0,
+        202.0,
+        87.0
+      ],
+      [
+        48.0,
+        85.0,
+        0.0
+      ]
+    ],
+    "v2": [
+      [
+        71.0,
+        5.0,
+        109.0
+      ],
+      [
+        2.0,
+        235.0,
+        133.0
+      ],
+      [
+        25.0,
+        52.0,
+        0.0
+      ]
+    ],
+    "axis_convention": "rows = predicted, columns = true (Ultralytics ConfusionMatrix.matrix)"
+  },
+  "interpretation_note": "v2 is higher than v1 on every reported aggregate and per-class metric on this holdout. This is a measured comparison on ONE date-aware holdout; it is not a promotion decision."
+}

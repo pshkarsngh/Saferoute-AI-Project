@@ -1,0 +1,452 @@
+{
+  "phase": "PHASE_24A",
+  "mode": "read-only audit; no dataset/label/split/config/checkpoint modified",
+  "workspace": "D:\\New folder (3)",
+  "active_dataset": {
+    "root": "D:\\New folder (3)\\data\\pothole_crack_manhole\\data",
+    "counts": {
+      "images": 2009,
+      "yolo_label_files": 2009,
+      "polygon_label_files": 2009,
+      "image_extension_breakdown": {
+        ".jpg": 2009
+      }
+    },
+    "pairing": {
+      "images_without_yolo_label": 0,
+      "yolo_labels_without_image": 0,
+      "images_without_polygon_label": 0,
+      "polygon_labels_without_image": 0
+    },
+    "yolo_label_integrity": {
+      "total_boxes": 4737,
+      "class_counts": {
+        "0": 1261,
+        "1": 2519,
+        "2": 957
+      },
+      "malformed_lines": 0,
+      "malformed_examples": [],
+      "out_of_range_boxes": 1,
+      "zero_area_boxes": 1,
+      "empty_label_files": 0
+    },
+    "polygon_label_integrity": {
+      "total_boxes": 4737,
+      "malformed_lines": 0
+    },
+    "coco_annotations": {
+      "exists": true,
+      "images": 2009,
+      "annotations": 4737,
+      "categories": [
+        {
+          "id": 0,
+          "name": "pothole"
+        },
+        {
+          "id": 1,
+          "name": "crack"
+        },
+        {
+          "id": 2,
+          "name": "manhole"
+        }
+      ],
+      "bad_image_refs": 0
+    },
+    "duplicates": {
+      "exact_duplicate_groups": 5,
+      "exact_duplicate_files": 10,
+      "exact_examples": {
+        "03d0d10504382f37c91ad2b572c2c82e3eac552d97bfa88419420922fb2dd51f": [
+          "vlcsnap-2025-02-18-17h03m41s574.jpg",
+          "vlcsnap-2025-02-18-17h04m14s457.jpg"
+        ],
+        "8f19305ad449991b5407db1f760466cf2cfaa54d8eae2c64bb5ad728876e9242": [
+          "vlcsnap-2025-02-18-17h11m34s646.jpg",
+          "vlcsnap-2025-02-18-18h30m17s408.jpg"
+        ],
+        "165f82cf04ce967cc0aa92fc6a0d4b54b135ac431d1b674ed715413abc3a1610": [
+          "vlcsnap-2025-02-19-14h41m29s105.jpg",
+          "vlcsnap-2025-02-19-14h41m49s395.jpg"
+        ],
+        "9e4a6bedd8179627470a502275e422491ff6a1ae17d1509a8c2c195cf83e1362": [
+          "vlcsnap-2025-02-19-15h02m56s842.jpg",
+          "vlcsnap-2025-02-19-15h03m10s511.jpg"
+        ],
+        "091e2a950a5dcc7990dcf7708d191a64aa4ca3af16d0f292669d9d326771a5f8": [
+          "vlcsnap-2025-02-26-20h36m03s983.jpg",
+          "vlcsnap-2025-02-26-20h36m04s054.jpg"
+        ]
+      },
+      "near_duplicate_pairs_dhash_le6": 153,
+      "undecodable_images": [],
+      "near_dup_method": "8x8 dHash, banded-bucket prefilter, hamming<=6 (heuristic)"
+    },
+    "splits": {
+      "sizes": {
+        "train": 1406,
+        "val": 402,
+        "test": 201
+      },
+      "missing_targets_on_disk": {
+        "train": 0,
+        "val": 0,
+        "test": 0
+      },
+      "stem_overlaps_between_splits": {
+        "train_vs_val": 0,
+        "test_vs_train": 0,
+        "test_vs_val": 0
+      },
+      "cross_split_exact_content_groups": 0,
+      "cross_split_exact_examples": [],
+      "cross_split_near_duplicate_pairs": 0,
+      "cross_split_near_examples": []
+    },
+    "capture_sequence": {
+      "vlcsnap_video_frame_names": 1907,
+      "non_vlcsnap_names": [
+        "20250216_164325.jpg",
+        "20250216_164521.jpg",
+        "20250216_164541.jpg",
+        "20250219_164649.jpg",
+        "20250219_164714.jpg",
+        "20250219_164738.jpg",
+        "20250219_164746.jpg",
+        "20250219_164754.jpg",
+        "20250219_164756.jpg",
+        "20250219_164807.jpg",
+        "20250219_164813.jpg",
+        "20250219_164823.jpg",
+        "20250219_164829.jpg",
+        "20250219_164838.jpg",
+        "20250219_164848.jpg",
+        "20250219_164855.jpg",
+        "20250219_164905.jpg",
+        "20250219_164912.jpg",
+        "20250219_164919.jpg",
+        "20250219_165015.jpg"
+      ],
+      "non_vlcsnap_count": 102
+    }
+  },
+  "rdd2022": {
+    "root": "D:\\New folder (3)\\data\\raw\\RDD2022\\RDD2022",
+    "countries": {
+      "China_Drone": {
+        "train": {
+          "images": 2401,
+          "xml_annotations": 2401,
+          "images_without_xml": 0,
+          "xml_without_images": 0
+        },
+        "zip_archives": {}
+      },
+      "China_MotorBike": {
+        "test": {
+          "images": 500,
+          "xml_annotations": 0,
+          "images_without_xml": 500,
+          "xml_without_images": 0
+        },
+        "train": {
+          "images": 1977,
+          "xml_annotations": 1977,
+          "images_without_xml": 0,
+          "xml_without_images": 0
+        },
+        "zip_archives": {}
+      },
+      "Czech": {
+        "test": {
+          "images": 709,
+          "xml_annotations": 0,
+          "images_without_xml": 709,
+          "xml_without_images": 0
+        },
+        "train": {
+          "images": 2829,
+          "xml_annotations": 2829,
+          "images_without_xml": 0,
+          "xml_without_images": 0
+        },
+        "zip_archives": {}
+      },
+      "India": {
+        "test": {
+          "images": 1959,
+          "xml_annotations": 0,
+          "images_without_xml": 1959,
+          "xml_without_images": 0
+        },
+        "train": {
+          "images": 7706,
+          "xml_annotations": 7706,
+          "images_without_xml": 0,
+          "xml_without_images": 0
+        },
+        "zip_archives": {}
+      },
+      "Japan": {
+        "test": {
+          "images": 2627,
+          "xml_annotations": 0,
+          "images_without_xml": 2627,
+          "xml_without_images": 0
+        },
+        "train": {
+          "images": 10506,
+          "xml_annotations": 10506,
+          "images_without_xml": 0,
+          "xml_without_images": 0
+        },
+        "zip_archives": {}
+      },
+      "United_States": {
+        "test": {
+          "images": 1200,
+          "xml_annotations": 0,
+          "images_without_xml": 1200,
+          "xml_without_images": 0
+        },
+        "train": {
+          "images": 4805,
+          "xml_annotations": 4805,
+          "images_without_xml": 0,
+          "xml_without_images": 0
+        },
+        "zip_archives": {}
+      }
+    },
+    "label_map_exists": true
+  },
+  "data_yolo": {
+    "root": "D:\\New folder (3)\\DATA-YOLO",
+    "subdirs": {
+      "Datasets": {
+        "files_total": 7678,
+        "images_total": 3554,
+        "extension_breakdown": {
+          ".cache": 3,
+          ".ini": 44,
+          ".ipynb": 1,
+          ".jpeg": 6,
+          ".jpg": 3548,
+          ".json": 2,
+          ".mp4": 22,
+          ".txt": 3434,
+          ".xml": 618
+        },
+        "format_assessment": "VOC/XML-based",
+        "label_dirs": [
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\train\\labels",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\valid\\labels",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\classes\\cracks\\labels",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\classes\\good_road\\labels",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\classes\\open_manhole\\labels"
+        ],
+        "images_dirs": [
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\test\\images",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\train\\images",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\valid\\images",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\classes\\cracks\\images",
+          "DATA-YOLO\\Datasets\\dataset\\dataset\\classes\\good_road\\images"
+        ]
+      },
+      "Datasets2": {
+        "files_total": 228,
+        "images_total": 201,
+        "extension_breakdown": {
+          ".jpg": 201,
+          ".xml": 27
+        },
+        "format_assessment": "VOC/XML-based",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "day light road images": {
+        "files_total": 14607,
+        "images_total": 14607,
+        "extension_breakdown": {
+          ".jpg": 14607
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "digital pollution (enhanced dataset2.2)": {
+        "files_total": 17841,
+        "images_total": 17840,
+        "extension_breakdown": {
+          ".ini": 1,
+          ".jpg": 17840
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "Fog": {
+        "files_total": 328,
+        "images_total": 328,
+        "extension_breakdown": {
+          ".png": 328
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "highway": {
+        "files_total": 1712,
+        "images_total": 1712,
+        "extension_breakdown": {
+          ".jpg": 1712
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "mud_path": {
+        "files_total": 671,
+        "images_total": 671,
+        "extension_breakdown": {
+          ".jpg": 671
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "night time road images": {
+        "files_total": 16960,
+        "images_total": 16960,
+        "extension_breakdown": {
+          ".jpg": 16960
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "night_vision": {
+        "files_total": 678,
+        "images_total": 678,
+        "extension_breakdown": {
+          ".jpg": 678
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "rainy": {
+        "files_total": 300,
+        "images_total": 300,
+        "extension_breakdown": {
+          ".jpg": 300
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "Road_Condition_Dataset": {
+        "files_total": 1819,
+        "images_total": 1819,
+        "extension_breakdown": {
+          ".jpg": 1819
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "Road_crack": {
+        "files_total": 871,
+        "images_total": 870,
+        "extension_breakdown": {
+          ".jpg": 435,
+          ".md": 1,
+          ".png": 435
+        },
+        "format_assessment": "paired image+mask (segmentation)",
+        "label_dirs": [],
+        "images_dirs": []
+      },
+      "traffic_path": {
+        "files_total": 1972,
+        "images_total": 1972,
+        "extension_breakdown": {
+          ".jpg": 1972
+        },
+        "format_assessment": "images only (no annotations found)",
+        "label_dirs": [],
+        "images_dirs": []
+      }
+    },
+    "zip_archives_MB": {
+      "archive (1).zip": 122.0,
+      "archive (2).zip": 670.8,
+      "archive (3).zip": 1028.3,
+      "archive (4).zip": 459.0,
+      "archive (5).zip": 46.7,
+      "archive (6).zip": 300.5,
+      "archive (7).zip": 4416.2,
+      "archive.zip": 27.9
+    },
+    "documents": {
+      "Pushkar Singh Baghel.pdf": 0.1
+    }
+  },
+  "model_artifacts": {
+    "v1_best": {
+      "exists": true,
+      "size_mb": 5.2,
+      "sha256": "61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65",
+      "matches_pinned_ph09": true
+    },
+    "v2_best": {
+      "exists": true,
+      "size_mb": 5.21,
+      "sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA"
+    },
+    "stray_weights_dir_yolo26n": {
+      "exists": true,
+      "size_mb": 5.29,
+      "sha256": "9B09CC8BF347F0FC8A5F7657480587F25DB09B34BF33B0652110FB03A8AD4FEF"
+    },
+    "v1_results_csv": {
+      "exists": true,
+      "last_row": {
+        "header_epoch_count": 48,
+        "last_row_selected_metrics": {
+          "epoch": "49",
+          "metrics/precision(B)": "0.3836",
+          "metrics/recall(B)": "0.31644",
+          "metrics/mAP50(B)": "0.25927",
+          "metrics/mAP50-95(B)": "0.09317"
+        }
+      },
+      "best_map50": {
+        "best_value": 0.27821,
+        "epoch": "39"
+      }
+    },
+    "v2_results_csv": {
+      "exists": true,
+      "last_row": {
+        "header_epoch_count": 143,
+        "last_row_selected_metrics": {
+          "epoch": "144",
+          "metrics/precision(B)": "0.34835",
+          "metrics/recall(B)": "0.34682",
+          "metrics/mAP50(B)": "0.25516",
+          "metrics/mAP50-95(B)": "0.09112"
+        }
+      },
+      "best_map50": {
+        "best_value": 0.28707,
+        "epoch": "104"
+      }
+    },
+    "note": "v2 validation metrics read from results.csv are VALIDATION-split figures only; v2 has never been test-evaluated (R3, UNVERIFIED for test).",
+    "checkpoint_files_untouched": true
+  },
+  "duration_seconds": 92.3
+}

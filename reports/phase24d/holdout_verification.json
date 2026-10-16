@@ -1,0 +1,252 @@
+{
+  "mode": "verify",
+  "timestamp_utc": "2026-10-15T20:24:11.439365+00:00",
+  "workspace_root": "D:\\New folder (3)",
+  "git": {
+    "head": "5645dcb57e3279ce059c98250e0674684eb6e9da",
+    "branch": "main",
+    "status_short": [
+      "?? data/dataset_v2.yaml",
+      "?? data/derived_2class/",
+      "?? data/splits_v2/",
+      "?? docs/reports/PHASE_24A_DATASET_AUDIT.md",
+      "?? docs/reports/PHASE_24B_DATASET_CLEANING_PROPOSAL.md",
+      "?? docs/reports/PHASE_24C_DERIVED_DATASET_CONSTRUCTION.md",
+      "?? docs/reports/PHASE_24_BASELINE_AUDIT.md",
+      "?? reports/phase24a/",
+      "?? reports/phase24b/",
+      "?? reports/phase24d/",
+      "?? scripts/audit/phase24a_dataset_audit.py",
+      "?? scripts/audit/phase24a_session_leakage.py",
+      "?? scripts/audit/phase24b_split_proposal.py",
+      "?? scripts/audit/phase24d_evaluate_holdout.py",
+      "?? scripts/build_derived_dataset_v2.py"
+    ]
+  },
+  "checkpoints": {
+    "v1": {
+      "path": "D:\\New folder (3)\\models\\training\\saferoute-yolo11-v1\\weights\\best.pt",
+      "exists": true,
+      "sha256": "61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65",
+      "expected_sha256": "61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65",
+      "hash_ok": true
+    },
+    "v2": {
+      "path": "D:\\New folder (3)\\models\\training\\saferoute-yolo11-v2\\weights\\best.pt",
+      "exists": true,
+      "sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+      "expected_sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+      "hash_ok": true
+    }
+  },
+  "dataset_configs": {
+    "dataset_v2_yaml": {
+      "path": "D:\\New folder (3)\\data\\dataset_v2.yaml",
+      "sha256": "98EDD97ADDF2F72779335E6622D575C0C3B88E2C7BDF88ADAD31BDD3D62C1912"
+    },
+    "dataset_v1_yaml": {
+      "path": "D:\\New folder (3)\\data\\dataset.yaml",
+      "sha256": "CD502CDC20B732CBBE239A6F80FBA69CFD4B9451CFBE5BA26EC2AC0687E5969E"
+    }
+  },
+  "split_sha256": {
+    "train": "3DC10C151E939C283328A6E615B51BCD25607A3C2CDDEB296A9062F967CC5978",
+    "val": "37D92842313D013C6030B857EC81C22FF4FD4B051AAD011AF25E89B8011621A1",
+    "test": "AABA32ABA36C668145017715CC4C9190D0C58457EBE6CD66D515EF9BE0325D07"
+  },
+  "derived_labels": {
+    "merkle_sha256": "0C15D6AF395335FC6FAF06A90F6261BEFFFA05A78C9A4C114B936FBB01158142",
+    "file_count": 1792
+  },
+  "holdout": {
+    "images": 216,
+    "stems": 216,
+    "missing_images": [],
+    "missing_labels": [],
+    "empty_label_images": 46,
+    "boxes_by_class": {
+      "0": 98,
+      "1": 292
+    },
+    "boxes_total": 390,
+    "image_bytes_verified": 216,
+    "image_bytes_mismatch": [],
+    "capture_dates": {
+      "train": [
+        "2025-02-18",
+        "2025-02-19"
+      ],
+      "val": [
+        "2025-02-16",
+        "2025-02-23",
+        "2025-03-16"
+      ],
+      "test": [
+        "2025-02-26"
+      ]
+    },
+    "overlap_by_stem": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "overlap_by_date": {
+      "train_test": [],
+      "val_test": [],
+      "train_val": []
+    }
+  },
+  "checks": [
+    {
+      "check": "checkpoint_v1_hash",
+      "ok": true,
+      "detail": "D:\\New folder (3)\\models\\training\\saferoute-yolo11-v1\\weights\\best.pt sha256=61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65"
+    },
+    {
+      "check": "checkpoint_v2_hash",
+      "ok": true,
+      "detail": "D:\\New folder (3)\\models\\training\\saferoute-yolo11-v2\\weights\\best.pt sha256=B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA"
+    },
+    {
+      "check": "dataset_v2_yaml_hash",
+      "ok": true,
+      "detail": "98EDD97ADDF2F72779335E6622D575C0C3B88E2C7BDF88ADAD31BDD3D62C1912"
+    },
+    {
+      "check": "dataset_v1_yaml_unchanged",
+      "ok": true,
+      "detail": "CD502CDC20B732CBBE239A6F80FBA69CFD4B9451CFBE5BA26EC2AC0687E5969E"
+    },
+    {
+      "check": "split_train_hash",
+      "ok": true,
+      "detail": "3DC10C151E939C283328A6E615B51BCD25607A3C2CDDEB296A9062F967CC5978"
+    },
+    {
+      "check": "split_val_hash",
+      "ok": true,
+      "detail": "37D92842313D013C6030B857EC81C22FF4FD4B051AAD011AF25E89B8011621A1"
+    },
+    {
+      "check": "split_test_hash",
+      "ok": true,
+      "detail": "AABA32ABA36C668145017715CC4C9190D0C58457EBE6CD66D515EF9BE0325D07"
+    },
+    {
+      "check": "derived_labels_merkle",
+      "ok": true,
+      "detail": "0C15D6AF395335FC6FAF06A90F6261BEFFFA05A78C9A4C114B936FBB01158142 n=1792"
+    },
+    {
+      "check": "derived_tree_has_no_cache_artifact",
+      "ok": true,
+      "detail": "D:\\New folder (3)\\data\\derived_2class\\labels.cache"
+    },
+    {
+      "check": "manifest_matches_derived_labels_merkle",
+      "ok": true,
+      "detail": "0C15D6AF395335FC6FAF06A90F6261BEFFFA05A78C9A4C114B936FBB01158142"
+    },
+    {
+      "check": "manifest_source_unchanged_after_generation",
+      "ok": true,
+      "detail": "{\"labels-YOLO\": true, \"images\": true, \"dataset_yaml\": true}"
+    },
+    {
+      "check": "source_labels_YOLO_merkle_unchanged",
+      "ok": true,
+      "detail": "B3446313F7D105BA23F3308C54D35FBF9D6254214B7A5DA7A39E5E4E8E03825F n=2009"
+    },
+    {
+      "check": "source_labels_polygon_merkle_unchanged",
+      "ok": true,
+      "detail": "9E5DFC3F8323187BD8A1567679B9531CD031DD83C3C08E50FA56AED8514A2D4E n=2009"
+    },
+    {
+      "check": "source_images_merkle_unchanged",
+      "ok": true,
+      "detail": "78A84E52A3D200B83B145E59C9070A929EB72A22C51C5D89E820BF4382A048F2 n=2009"
+    },
+    {
+      "check": "original_split_train_unchanged",
+      "ok": true,
+      "detail": "47042901B46064F16D012DB66FBA388F73889482F2E36DB6E179BADE7329800C"
+    },
+    {
+      "check": "original_split_val_unchanged",
+      "ok": true,
+      "detail": "13D992B1383665DA40970CD466B4FA125902250608B7178C859E52EDDB48B215"
+    },
+    {
+      "check": "original_split_test_unchanged",
+      "ok": true,
+      "detail": "46F647E0C102C88E2500F6304AD3F3FB9AE106B7060CEE12302A85887A42CA51"
+    },
+    {
+      "check": "source_dataset_yaml_unchanged_vs_manifest",
+      "ok": true,
+      "detail": "CD502CDC20B732CBBE239A6F80FBA69CFD4B9451CFBE5BA26EC2AC0687E5969E"
+    },
+    {
+      "check": "holdout_size_216",
+      "ok": true,
+      "detail": "216"
+    },
+    {
+      "check": "holdout_images_all_present",
+      "ok": true,
+      "detail": "missing=0"
+    },
+    {
+      "check": "holdout_labels_all_present",
+      "ok": true,
+      "detail": "missing=0"
+    },
+    {
+      "check": "holdout_label_class_ids_subset_{0,1}",
+      "ok": true,
+      "detail": "bad_class=0"
+    },
+    {
+      "check": "holdout_boxes_valid_range",
+      "ok": true,
+      "detail": "bad_box=0"
+    },
+    {
+      "check": "holdout_zero_area_boxes",
+      "ok": true,
+      "detail": "zero_area=0"
+    },
+    {
+      "check": "holdout_box_counts_match_manifest",
+      "ok": true,
+      "detail": "got={1: 292, 0: 98} expected={0: 98, 1: 292}"
+    },
+    {
+      "check": "holdout_empty_label_images_match_manifest",
+      "ok": true,
+      "detail": "got=46 expected=46"
+    },
+    {
+      "check": "holdout_image_bytes_match_manifest_sha256",
+      "ok": true,
+      "detail": "ok=216/216 mismatch=[]"
+    },
+    {
+      "check": "no_stem_overlap_between_splits",
+      "ok": true,
+      "detail": "{\"train_val\": 0, \"train_test\": 0, \"val_test\": 0}"
+    },
+    {
+      "check": "no_capture_date_spans_test_and_other_split",
+      "ok": true,
+      "detail": "{\"train_test\": [], \"val_test\": [], \"train_val\": []}"
+    },
+    {
+      "check": "holdout_capture_dates_as_documented",
+      "ok": true,
+      "detail": "[\"2025-02-26\"]"
+    }
+  ],
+  "all_checks_ok": true
+}
