@@ -38,7 +38,9 @@ app:
   llm:
     enabled: true                     # requires a reachable local Ollama, else fallback
     base_url: "http://127.0.0.1:11434"
-    model: "llama3.2"
+    # Installed local Ollama tag (verified with `ollama list`), not "llama3.2":
+    # the configured model must exist locally or every explanation falls back.
+    model: "llama3:latest"
     timeout_seconds: 30.0
 
   server:
