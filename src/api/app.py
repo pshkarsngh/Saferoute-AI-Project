@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -310,7 +310,7 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def create_server(host: str = "127.0.0.1", port: int = 8000, api: SafeRouteAPI = None,
-                  static_dir: Optional[Path] = None) -> HTTPServer:
+                  static_dir: Optional[Path] = None) -> ThreadingHTTPServer:
     api = api or SafeRouteAPI()
     _Handler.api = api
     if static_dir is not None:
@@ -318,7 +318,7 @@ def create_server(host: str = "127.0.0.1", port: int = 8000, api: SafeRouteAPI =
     elif api is not None:
         from src.config.env import WORKSPACE_ROOT as _WS
         _Handler.static_dir = (_WS / api.settings.static_dir)
-    return HTTPServer((host, port), _Handler)
+    return ThreadingHTTPServer((host, port), _Handler)
 
 
 def main():

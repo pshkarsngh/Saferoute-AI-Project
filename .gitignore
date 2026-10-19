@@ -39,3 +39,7 @@ weights/
 *.pt
 *.onnx
 *.engine
+
+# Nested standalone frontend repository (its own git repo -> github.com/pshkarsngh/SafeRouteAI).
+# Contains node_modules/dist (~1 GB); pushed to its own remote, not this one.
+frontend/Frontend/

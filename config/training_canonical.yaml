@@ -1,0 +1,86 @@
+# SafeRoute AI — CANONICAL YOLO11 Training Configuration
+# This is the single documented training workflow for the canonical model
+# (master_rules.md Rules 1, 3, 4, 5, 14, 15, 16, 17, 18; single-model policy).
+#
+# Why this config exists (PHASE 1 audit of the ML rework):
+#   The original data/dataset.yaml declares nc=2 but the source labels contain
+#   class-2 (manhole) rows in 759/2009 images. Ultralytics treats any label with
+#   class >= nc as corrupt and DISCARDS THE WHOLE IMAGE, so v1 and v2 were
+#   silently trained on only 861/1406 images and evaluated on 264/402 (val) and
+#   125/201 (test). This config trains on the audited derived two-class dataset
+#   (data/dataset_v2.yaml + data/splits_v2, date-atomic, zero corrupt images)
+#   which removes the manhole box only in derived labels and keeps the image.
+#
+# Hyperparameters: identical to the approved v2 recipe (config/training_improved.yaml,
+#   frozen 2026-10-14), so the ONLY variables changed are the dataset and workers.
+#   - workers: 0 (Rule 16; prior DataLoader worker crashes from low host RAM)
+#
+# Output: a clearly TEMPORARY directory (models/training/_tmp_canonical/).
+#   Weights are promoted into the canonical serving path ONLY after evaluation
+#   and explicit approval. The serving checkpoint is protected (read-only +
+#   SHA-256 verified) during training. No permanent v3/v4 model directories.
+
+experiment:
+  name: "saferoute-yolo11-canonical"
+  model_version: "saferoute-yolo11-v2 (canonical path; retrained weights pending approval)"
+  phase_id: "CANONICAL-RETRAIN"
+  date_frozen: "2026-10-19"
+
+model:
+  variant: "yolo11n"
+  pretrained_weights: "yolo11n.pt"   # already present in workspace (no download)
+  licence: "AGPL-3.0 / Enterprise"
+  download_status: "already_present_in_workspace"
+
+dataset:
+  config_path: "data/dataset_v2.yaml"   # audited derived 2-class dataset (Phase 1 re-validated)
+  num_classes: 2
+  classes:
+    0: "pothole"
+    1: "crack"
+  unsupported_classes:
+    2: "manhole"                        # removed only in derived labels; originals untouched
+
+hyperparameters:
+  imgsz: 640
+  batch: 16
+  epochs: 150
+  patience: 40
+  optimizer: "AdamW"
+  lr0: 0.001
+  lrf: 0.01
+  momentum: 0.937
+  weight_decay: 0.0005
+  warmup_epochs: 3.0
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+  box: 7.5
+  cls: 0.5
+  dfl: 1.5
+  amp: true
+  seed: 42
+  deterministic: true
+  workers: 0                           # REQUIRED: low host RAM has crashed workers before
+  device: 0
+  cos_lr: true
+
+  augmentation:                        # unchanged from approved v2 recipe
+    mosaic: 1.0
+    mixup: 0.15
+    hsv_h: 0.015
+    hsv_s: 0.7
+    hsv_v: 0.4
+    degrees: 8.0
+    translate: 0.1
+    scale: 0.5
+    shear: 2.0
+    perspective: 0.0005
+    fliplr: 0.5
+    flipud: 0.0
+    close_mosaic: 15
+
+paths:                                 # TEMPORARY — never the canonical serving directory
+  project: "models/training/_tmp_canonical"
+  name: "retrain"
+  log_dir: "logs/training/_tmp_canonical"
+  save_period: 10
