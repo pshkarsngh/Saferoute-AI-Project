@@ -14,7 +14,7 @@ from src.api.app import SafeRouteAPI, create_server
 from src.api.pipeline import SafetyAnalysisPipeline
 from src.api.store import AnalysisStore
 from src.geocoding.mock_geocoder import MockGeocoder
-from src.detection.schemas import DetectionStatus, ImageDetectionResult
+from src.detection.schemas import DetectionRecord, DetectionStatus, ImageDetectionResult
 from src.imagery.interfaces import ImageryProvider
 from src.imagery.schemas import ImageRef, ImageryResult, ImageryStatus
 from src.routing.schemas import Coordinate, RouteResponse, RoutingStatus
@@ -33,6 +33,26 @@ class FakeDetector:
             model_version=self.model_version, pipeline_version=self.pipeline_version,
             status=DetectionStatus.NO_DETECTIONS, image_id=image_id,
             route_id=route_id, segment_id=segment_id, detections=[],
+            image_width=640, image_height=640, error=None, timing_ms={},
+        )
+
+
+class SinglePotholeDetector:
+    """Returns exactly one supported 'pothole' detection per image (deterministic)."""
+    model_version = "saferoute-yolo11-v1"
+    pipeline_version = "preprocess-v1"
+
+    def detect(self, image_input, image_id=None, route_id=None, segment_id=None, conf=None):
+        return ImageDetectionResult(
+            model_version=self.model_version, pipeline_version=self.pipeline_version,
+            status=DetectionStatus.SUCCESS, image_id=image_id,
+            route_id=route_id, segment_id=segment_id,
+            detections=[DetectionRecord(
+                model_version=self.model_version, image_id=image_id,
+                route_id=route_id, segment_id=segment_id,
+                hazard_class="pothole", confidence=0.9,
+                bbox_xyxy=[10.0, 10.0, 50.0, 50.0],
+                bbox_norm=[0.01, 0.01, 0.08, 0.08], status="detected")],
             image_width=640, image_height=640, error=None, timing_ms={},
         )
 
@@ -174,6 +194,59 @@ class TestApiNegativeAndHttp(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertIsNotNone(got)
         self.assertEqual(got["analysis_id"], rec["analysis_id"])
+
+    # --------------------------------- hazard_detections (PHASE_25) ------ #
+    def _detecting_api(self, detector):
+        pipeline = SafetyAnalysisPipeline(imagery_adapter=HalfImageryProvider(),
+                                          detector=detector)
+        return SafeRouteAPI(pipeline=pipeline, store=self.store, geocoder=MockGeocoder())
+
+    def _hazard_rows(self, analysis_id):
+        import sqlite3
+        conn = sqlite3.connect(str(self.db))
+        try:
+            rows = conn.execute(
+                "SELECT analysis_id, route_id, segment_id, image_id, hazard_class, "
+                "confidence, severity, bbox_json, status FROM hazard_detections "
+                "WHERE analysis_id=?", (analysis_id,)).fetchall()
+        finally:
+            conn.close()
+        return rows
+
+    def test_hazard_detections_persisted_for_audit(self):
+        """Recorded detections are queryable, with the model/config audit fields."""
+        api = self._detecting_api(SinglePotholeDetector())
+        _, rec = api.analyze({"destination": {"latitude": DEST.latitude, "longitude": DEST.longitude}})
+        rows = self._hazard_rows(rec["analysis_id"])
+        self.assertTrue(rows, "supported detections must be persisted for audit (Rule 17)")
+        row = rows[0]
+        self.assertEqual(row[0], rec["analysis_id"])
+        self.assertTrue(row[1])            # route_id
+        self.assertTrue(row[3])            # image_id
+        self.assertEqual(row[4], "pothole")
+        self.assertAlmostEqual(row[5], 0.9, places=4)   # confidence
+        self.assertIn("bbox_xyxy", json.loads(row[7]))
+        self.assertEqual(row[8], "assessed")   # HazardRecord assessment status
+        # Must match the hazards already exposed by the read API.
+        code, haz = api.hazards(rec["analysis_id"])
+        self.assertEqual(code, 200)
+        self.assertEqual(len(haz["hazards"]), len(rows))
+
+    def test_hazard_detections_idempotent_on_resave(self):
+        """Re-saving the same analysis must not duplicate detection rows."""
+        api = self._detecting_api(SinglePotholeDetector())
+        _, rec = api.analyze({"destination": {"latitude": DEST.latitude, "longitude": DEST.longitude}})
+        first = len(self._hazard_rows(rec["analysis_id"]))
+        self.assertGreater(first, 0)
+        self.store.save_analysis(rec)
+        self.store.save_analysis(rec)
+        self.assertEqual(len(self._hazard_rows(rec["analysis_id"])), first)
+
+    def test_hazard_detections_empty_when_none_detected(self):
+        """No detections -> no rows (an absence is never recorded as a hazard)."""
+        api = self._detecting_api(FakeDetector())
+        _, rec = api.analyze({"destination": {"latitude": DEST.latitude, "longitude": DEST.longitude}})
+        self.assertEqual(self._hazard_rows(rec["analysis_id"]), [])
 
     def test_http_health_endpoint(self):
         api = self._api()

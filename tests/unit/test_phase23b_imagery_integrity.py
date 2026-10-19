@@ -105,6 +105,20 @@ class TestNoFabricatedCoordinates(unittest.TestCase):
         self.assertTrue(demo.images)                     # explicit demo only
         self.assertTrue(all(i.is_demo for i in demo.images))
 
+    def test_demo_mode_respects_configured_image_cap(self):
+        """PHASE_25: demo mode must honour matching.max_images_per_segment.
+
+        Previously the demo path returned the whole archive for every segment,
+        multiplying inference work while demo mode is otherwise OFF by default.
+        """
+        adapter = PermittedImageryAdapter(demo_mode=True)
+        cap = adapter.matcher.max_images
+        self.assertGreater(cap, 0)
+        result = adapter.get_imagery_for_segment(_segment(), permitted_source="workspace_dashcam_v1")
+        self.assertTrue(result.images)
+        self.assertLessEqual(len(result.images), cap)
+        self.assertTrue(all(i.is_demo for i in result.images))
+
 
 # --------------------------------------------------------------------------- #
 # 3 & 7 — Mapillary auth failure honesty + token redaction

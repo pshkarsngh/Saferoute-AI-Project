@@ -1,5 +1,6 @@
 """SafeRoute AI — Mapillary provider unit tests (hermetic, no network)."""
 
+import time
 import unittest
 import tempfile
 from pathlib import Path
@@ -10,14 +11,23 @@ from src.routing.schemas import Coordinate, RouteGeometry, RouteSegment
 
 TMP = Path(__file__).resolve().parent.parent.parent / "data" / "imagery" / "_test_mapillary"
 
+_DAY_MS = 86_400_000
+_NOW_MS = int(time.time() * 1000)
+FRESH_MS = _NOW_MS - 10 * _DAY_MS     # well inside the 180-day policy window
+STALE_MS = _NOW_MS - 400 * _DAY_MS    # beyond the policy window
+
 
 class _FakeHttp:
     def __init__(self, payload=None, fail=False):
         self.payload = payload or {"data": []}
         self.fail = fail
         self.downloads = []
+        self.last_params = {}
+        self.params_history = []
 
     def get_json(self, url, params):
+        self.last_params = dict(params)
+        self.params_history.append(dict(params))
         return self.payload
 
     def download(self, url, dest, token=""):
@@ -45,6 +55,14 @@ def _payload(within=True):
         "geometry": {"type": "Point", "coordinates": [lon, lat]},
         "thumb_1024_url": "https://example.invalid/12345.jpg",
     }]}
+
+
+def _img(mid, lat, lon, captured_ms, thumb=None):
+    return {
+        "id": mid, "captured_at": captured_ms,
+        "geometry": {"type": "Point", "coordinates": [lon, lat]},
+        "thumb_1024_url": thumb or f"https://example.invalid/{mid}.jpg",
+    }
 
 
 def _provider(http, token="tok", fallback=None):
@@ -100,6 +118,42 @@ class TestMapillaryProvider(unittest.TestCase):
         p = MapillaryImageryProvider(token="tok", http=_FakeHttp(), is_source_permitted=policy)
         res = p.get_imagery_for_segment(_segment(), permitted_source="google_street_view")
         self.assertEqual(res.status, ImageryStatus.DISALLOWED_SOURCE)
+
+    # ---- PHASE_26: imagery-acquisition reliability ------------------------- #
+
+    def test_requests_full_candidate_set(self):
+        """The bbox query is non-deterministic for small `limit` values (live API
+        returns a random subset that can exclude the newest frames). The provider
+        must request a large candidate limit so the candidate set is complete and
+        stable before selection."""
+        http = _FakeHttp(_payload(within=True))
+        _provider(http).get_imagery_for_segment(_segment())
+        self.assertGreaterEqual(int(http.last_params.get("limit", 0)), 500)
+
+    def test_prefers_fresh_over_nearer_stale(self):
+        """A fresher frame must not be displaced by a nearer stale frame (Rule 9)."""
+        stale_near = _img("stale_near", 12.9716, 77.5946, STALE_MS)   # on the segment
+        fresh_far = _img("fresh_far", 12.97174, 77.5946, FRESH_MS)    # ~15 m away
+        http = _FakeHttp({"data": [stale_near, fresh_far]})
+        res = _provider(http).get_imagery_for_segment(_segment())
+        self.assertEqual(res.status, ImageryStatus.AVAILABLE)
+        self.assertEqual([i.image_id for i in res.images], ["mapillary_fresh_far"])
+        self.assertFalse(res.images[0].is_stale)
+
+    def test_stale_only_is_marked_stale(self):
+        http = _FakeHttp({"data": [_img("stale_only", 12.9716, 77.5946, STALE_MS)]})
+        res = _provider(http).get_imagery_for_segment(_segment())
+        self.assertEqual(res.status, ImageryStatus.STALE)
+        self.assertTrue(res.images[0].is_stale)
+
+    def test_nearest_is_preferred_among_fresh(self):
+        near_fresh = _img("fresh_near", 12.9716, 77.5946, FRESH_MS)
+        far_fresh = _img("fresh_far2", 12.97174, 77.5946, FRESH_MS)
+        http = _FakeHttp({"data": [far_fresh, near_fresh]})
+        res = _provider(http).get_imagery_for_segment(_segment())
+        # Both are fresh (kept, <= max_images) but ordered nearest-first.
+        self.assertEqual([i.image_id for i in res.images],
+                         ["mapillary_fresh_near", "mapillary_fresh_far2"])
 
 
 if __name__ == "__main__":

@@ -264,7 +264,10 @@ class PermittedImageryAdapter(ImageryProvider):
         now_iso = datetime.now(timezone.utc).isoformat()
         image_refs: List[ImageRef] = []
         has_any_stale = False
-        for cand in demo_candidates:
+        # PHASE_25: the configured per-segment image cap applies to the demo path
+        # too, so enabling demo mode cannot multiply inference work by the whole
+        # archive (config/imagery.yaml -> matching.max_images_per_segment).
+        for cand in demo_candidates[: self.matcher.max_images]:
             is_stale, _age, _stale_note = self.staleness_evaluator.evaluate(cand.get("captured_at"))
             if is_stale:
                 has_any_stale = True

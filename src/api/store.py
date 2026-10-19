@@ -112,6 +112,24 @@ class AnalysisStore:
                      r.get("route_score"), r.get("coverage", {}).get("fraction"),
                      r.get("status", ""), now),
                 )
+            # PHASE_25: persist the supported hazard detections the schema already
+            # declares (TRD §12), so the audit trail is queryable and the module
+            # docstring is accurate (Rule 17). Re-saving an analysis first clears
+            # its previous rows so persistence stays idempotent, mirroring the
+            # INSERT OR REPLACE behaviour used above.
+            conn.execute("DELETE FROM hazard_detections WHERE analysis_id=?", (analysis_id,))
+            for r in analysis.get("routes", []):
+                for h in (r.get("hazards") or []):
+                    conn.execute(
+                        "INSERT INTO hazard_detections (analysis_id, route_id, segment_id, image_id, "
+                        "hazard_class, confidence, severity, bbox_json, status) VALUES (?,?,?,?,?,?,?,?,?)",
+                        (analysis_id, h.get("route_id") or r.get("route_id"),
+                         h.get("segment_id"), h.get("image_id"),
+                         h.get("hazard_class"), h.get("confidence"), h.get("severity"),
+                         json.dumps({"bbox_xyxy": h.get("bbox_xyxy"),
+                                     "bbox_norm": h.get("bbox_norm")}),
+                         h.get("status", "")),
+                    )
             conn.commit()
         finally:
             conn.close()

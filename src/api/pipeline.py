@@ -158,13 +158,23 @@ class SafetyAnalysisPipeline:
             for meta in imagery_meta
             for img in (meta.get("images") or [])
         )
-        result["evidence_class"] = "demo" if demo_used else "real"
+        stale_used = any(
+            img.get("is_stale") or (img.get("status") == "stale")
+            for meta in imagery_meta
+            for img in (meta.get("images") or [])
+        )
+        result["evidence_class"] = "demo" if demo_used else ("stale" if stale_used else "real")
         result["assessed_length_fraction"] = assessed_length_fraction(result)
         if demo_used:
             result["limitations"] = list(result.get("limitations", [])) + [
                 "Demo imagery (not geographically matched to this route) contributed to "
                 "this score; it is pipeline-demonstration evidence only and is excluded "
                 "from the real-world recommendation (Rule 9, Rule 20)."
+            ]
+        if stale_used and not demo_used:
+            result["limitations"] = list(result.get("limitations", [])) + [
+                "Stale imagery (captured beyond policy age or unverifiable) contributed "
+                "to evidence; stale evidence is not used to justify a recommendation (Rule 9)."
             ]
         return result
 

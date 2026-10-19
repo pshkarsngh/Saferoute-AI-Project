@@ -42,6 +42,15 @@ from src.routing.schemas import RouteSegment
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_STORAGE_REL = Path("data/imagery/mapillary")
 
+# Mapillary's /images?bbox= endpoint returns a NON-DETERMINISTIC, arbitrary subset
+# when ``limit`` is small (verified live: the same bbox returned 5/8/5 items and a
+# newest capture date flipping between 2017-12-13 and 2025-07-26 at limit=12; it
+# only converges to the stable, complete set at limit>=200). Requesting the
+# documented maximum (2000) makes the within-buffer candidate set complete and
+# deterministic so the nearest/freshest frame is never silently discarded.
+# (Mapillary API v4 reference: `limit` max/default is 2000.)
+CANDIDATE_LIMIT = 2000
+
 
 class MapillaryHttp:
     """Thin urllib wrapper (injectable for offline tests)."""
@@ -102,6 +111,7 @@ class MapillaryImageryProvider(ImageryProvider):
         search_radius_m: float = 25.0,
         thumbnail_width: int = 1024,
         download_thumbnails: bool = True,
+        candidate_limit: int = CANDIDATE_LIMIT,
         staleness_max_age_days: int = 180,
         http: Optional[MapillaryHttp] = None,
         fallback: Optional[ImageryProvider] = None,
@@ -114,6 +124,7 @@ class MapillaryImageryProvider(ImageryProvider):
         self.radius_m = float(search_radius_m)
         self.thumbnail_width = int(thumbnail_width)
         self.download_thumbnails = bool(download_thumbnails)
+        self.candidate_limit = max(1, int(candidate_limit))
         self.http = http or MapillaryHttp()
         self.fallback = fallback
         self.staleness = StalenessEvaluator(max_age_days=staleness_max_age_days)
@@ -187,7 +198,9 @@ class MapillaryImageryProvider(ImageryProvider):
             "access_token": self.token,
             "fields": f"id,captured_at,compass_angle,geometry,{self.thumb_field}",
             "bbox": bbox,
-            "limit": max(self.max_images * 4, 10),
+            # A large limit is REQUIRED for correctness: small limits return a
+            # non-deterministic, incomplete subset (see CANDIDATE_LIMIT note).
+            "limit": self.candidate_limit,
         }
 
         try:
@@ -234,17 +247,28 @@ class MapillaryImageryProvider(ImageryProvider):
                 f"No Mapillary imagery within {self.radius_m:.0f} m of segment geometry.",
                 ["unmatched_segment_imagery", "missing_imagery_not_safe"])
 
-        ranked.sort(key=lambda x: x[1])
-        ranked = ranked[: self.max_images]
+        # Evaluate freshness for EVERY in-buffer candidate, then prefer fresh
+        # imagery (Rule 9): a fresh frame must never be displaced by a nearer
+        # stale frame. Only when no fresh frame exists do we fall back to the
+        # stale frames (which keeps the existing stale-evidence scoring path).
+        # The 180-day freshness policy itself is unchanged (StalenessEvaluator).
+        evaluated = []
+        for item, dist in ranked:
+            captured_at = self._epoch_to_iso(item.get("captured_at"))
+            is_stale, _age, note = self.staleness.evaluate(captured_at)
+            evaluated.append((item, dist, captured_at, is_stale, note))
+
+        fresh = [e for e in evaluated if not e[3]]
+        pool = fresh if fresh else evaluated
+        pool.sort(key=lambda e: e[1])
+        pool = pool[: self.max_images]
 
         now_iso = datetime.now(timezone.utc).isoformat()
         image_refs: List[ImageRef] = []
         limitations: List[str] = []
         has_stale = False
-        for item, dist in ranked:
+        for item, dist, captured_at, is_stale, note in pool:
             mid = str(item.get("id", "unknown"))
-            captured_at = self._epoch_to_iso(item.get("captured_at"))
-            is_stale, _age, note = self.staleness.evaluate(captured_at)
             if is_stale:
                 has_stale = True
                 if note:

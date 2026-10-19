@@ -88,6 +88,24 @@ class RouteComparer:
         self.never_recommend_demo = bool(guard.get("never_recommend_demo_evidence", True))
 
     # ------------------------------------------------------------------ #
+    def _is_sufficiently_assessed(self, fraction: float, is_demo: bool, is_stale: bool = False) -> bool:
+        """Policy test for whether a scored route may take part in a recommendation.
+
+        A route is sufficiently assessed only when it carries the documented
+        minimum assessed length AND its evidence class is admitted by policy.
+        When `never_recommend_demo_evidence` is active, demo evidence does not
+        qualify as sufficiently assessed (Rule 9, Rule 20).
+        Stale evidence must not qualify a route for recommendation (Rule 9).
+        """
+        if fraction < self.min_assessed_length_fraction:
+            return False
+        if self.never_recommend_demo and is_demo:
+            return False
+        if is_stale:
+            return False
+        return True
+
+    # ------------------------------------------------------------------ #
     def build(self, routes: List[Dict[str, Any]], assessed_at: Optional[str] = None) -> Dict[str, Any]:
         """Build the comparison/recommendation block from verified route records."""
         scored = [r for r in routes if r.get("route_score") is not None]
@@ -97,19 +115,24 @@ class RouteComparer:
         for r in scored:
             frac = assessed_length_fraction(r)
             is_demo = bool(r.get("evidence_class") == "demo")
-            eligible = frac >= self.min_assessed_length_fraction
-            if self.never_recommend_demo and is_demo:
-                eligible = False
+            is_stale_evidence = bool(r.get("evidence_class") == "stale")
+            eligible = self._is_sufficiently_assessed(frac, is_demo, is_stale_evidence)
             enriched.append({
                 "route": r,
                 "assessed_length_fraction": frac,
                 "is_demo": is_demo,
+                "is_stale_evidence": is_stale_evidence,
                 "eligible": eligible,
             })
 
         ranked = sorted(enriched, key=lambda e: e["route"]["route_score"], reverse=True)
         candidates = [e for e in ranked if e["eligible"]]
-        state = self._decide(ranked, candidates, had_routes=bool(routes))
+        state = self._decide(
+            ranked,
+            candidates,
+            had_routes=bool(routes),
+            unassessed_count=len(unassessed),
+        )
 
         return {
             "ranking": [
@@ -134,6 +157,7 @@ class RouteComparer:
         ranked: List[Dict[str, Any]],
         candidates: List[Dict[str, Any]],
         had_routes: bool = False,
+        unassessed_count: int = 0,
     ) -> Dict[str, Any]:
         state: Dict[str, Any] = {
             "status": "cannot_determine",
@@ -171,13 +195,22 @@ class RouteComparer:
                     "for a real-world recommendation."
                 )
             else:
+                stale_only = all(e.get("is_stale_evidence") for e in ranked)
                 state["comparability"] = "no_sufficiently_assessed_route"
                 best_frac = max(e["assessed_length_fraction"] for e in ranked)
-                state["cannot_determine_reason"] = (
-                    f"no_sufficiently_assessed_route: no route reached the minimum assessed "
-                    f"length of {self.min_assessed_length_fraction:.0%} "
-                    f"(best was {best_frac:.0%}); the safest route cannot be determined."
-                )
+                if stale_only:
+                    state["cannot_determine_reason"] = (
+                        "no_sufficiently_assessed_route: every scored route relied on "
+                        "stale imagery (capture beyond policy age or unverifiable), and "
+                        "stale evidence is never used to justify a recommendation; the "
+                        "safest route cannot be determined."
+                    )
+                else:
+                    state["cannot_determine_reason"] = (
+                        f"no_sufficiently_assessed_route: no route reached the minimum assessed "
+                        f"length of {self.min_assessed_length_fraction:.0%} "
+                        f"(best was {best_frac:.0%}); the safest route cannot be determined."
+                    )
             return state
 
         top = candidates[0]
@@ -204,7 +237,8 @@ class RouteComparer:
             "single_sufficiently_assessed_route" if len(candidates) == 1
             else "sufficiently_assessed_comparison"
         )
-        state["reasons"] = self._recommendation_reasons(top, candidates, ranked)
+        state["reasons"] = self._recommendation_reasons(
+            top, candidates, ranked, unassessed_count)
         return state
 
     # ------------------------------------------------------------------ #
@@ -213,6 +247,7 @@ class RouteComparer:
         top: Dict[str, Any],
         candidates: List[Dict[str, Any]],
         ranked: List[Dict[str, Any]],
+        unassessed_count: int = 0,
     ) -> List[str]:
         route = top["route"]
         seg_count = len(hazard_segments(route))
@@ -241,10 +276,12 @@ class RouteComparer:
                 parts.append(f"{abs(d_time):.0f} s {'faster' if d_time < 0 else 'slower'}")
             reasons.append(", ".join(parts) + ".")
 
-        if len(candidates) == 1 and len(ranked) > 1:
+        total_routes = len(ranked) + unassessed_count
+        if len(candidates) == 1 and total_routes > 1:
+            others = total_routes - 1
             reasons.append(
-                f"Only 1 of {len(ranked)} scored route(s) had sufficient assessed coverage; "
-                f"the other scored route(s) could not be defensibly compared."
+                f"Only 1 of {total_routes} returned route(s) was sufficiently assessed; "
+                f"the other {others} route(s) could not be defensibly compared."
             )
         elif len(candidates) < len(ranked):
             reasons.append(
@@ -255,6 +292,11 @@ class RouteComparer:
             reasons.append(
                 "Route(s) scored from demo imagery were excluded: demo imagery is not "
                 "geographically matched to the requested roads."
+            )
+        if any(e.get("is_stale_evidence") for e in ranked):
+            reasons.append(
+                "Stale imagery was not used to justify a recommendation; freshness could "
+                "not be verified as current."
             )
         reasons.append(
             "Unassessed route(s) were not compared: missing imagery is never treated "
@@ -277,11 +319,13 @@ class RouteComparer:
             "status": route.get("status"),
             "coverage": route.get("coverage"),
             "assessed_length_fraction": entry["assessed_length_fraction"],
-            "sufficiently_assessed": (
-                entry["assessed_length_fraction"] >= self.min_assessed_length_fraction
-            ),
+            "sufficiently_assessed": self._is_sufficiently_assessed(
+                entry["assessed_length_fraction"], entry["is_demo"], entry.get("is_stale_evidence", False)),
             "eligible_for_recommendation": entry["eligible"],
-            "evidence_class": "demo" if entry["is_demo"] else "real",
+            "evidence_class": (
+                "demo" if entry["is_demo"]
+                else ("stale" if entry.get("is_stale_evidence") else "real")
+            ),
             "distance_m": route.get("distance_m"),
             "duration_s": route.get("duration_s"),
             "hazards_total": route.get("hazards_total", 0),
@@ -346,12 +390,28 @@ class RouteComparer:
                 "the evidence does not support declaring one safer."
             )
 
-        if not entry["eligible"]:
+        if entry.get("is_stale_evidence"):
             reasons.append(
-                f"Not eligible for recommendation: only {entry['assessed_length_fraction']:.0%} "
-                f"of the route length was assessed (policy minimum "
-                f"{self.min_assessed_length_fraction:.0%})."
+                "Stale imagery: freshness could not be verified as current; evidence is not "
+                "used to support a recommendation."
             )
+        if not entry["eligible"]:
+            if entry["is_demo"] and self.never_recommend_demo:
+                reasons.append(
+                    "Not eligible for recommendation: evidence class 'demo' is excluded "
+                    "by policy from real-world recommendations."
+                )
+            elif entry.get("is_stale_evidence"):
+                reasons.append(
+                    "Not eligible for recommendation: imagery freshness is stale or unverifiable; "
+                    "stale evidence is not used to justify a recommendation."
+                )
+            else:
+                reasons.append(
+                    f"Not eligible for recommendation: only {entry['assessed_length_fraction']:.0%} "
+                    f"of the route length was assessed (policy minimum "
+                    f"{self.min_assessed_length_fraction:.0%})."
+                )
         elif top is not None and route["route_id"] != top["route"]["route_id"]:
             hazard_delta = int(route.get("hazards_total", 0)) - int(top["route"].get("hazards_total", 0))
             if hazard_delta > 0:

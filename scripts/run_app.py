@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SafeRoute AI — one-command launcher (API + UI).
+r"""SafeRoute AI — one-command launcher (API + UI).
 
 Runs the stdlib HTTP server that serves both the JSON API and the static
 frontend, and opens the UI in the default browser.
