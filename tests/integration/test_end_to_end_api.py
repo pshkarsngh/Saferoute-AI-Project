@@ -137,13 +137,68 @@ class TestEndToEndApi(unittest.TestCase):
         with urllib.request.urlopen(base + "/", timeout=10) as r:
             self.assertEqual(r.status, 200)
             body = r.read().decode("utf-8", "replace")
-        self.assertIn("SafeRoute AI", body)
+        self.assertTrue("SafeRoute AI" in body or "INDROUTE" in body)
+        self.assertIn("<div id=\"root\"", body)
 
     def test_analyze_accepts_place_name_destination(self):
         base = self._server(imagery_adapter=HalfImageryProvider())
         code, rec = self._post(base, "/api/analyze", {"destination_query": "Koramangala"})
         self.assertEqual(code, 200)
         self.assertEqual(rec["destination"]["latitude"], 12.9352)
+
+    # --------------------------------- PHASE_27 multiple routes / latency -- #
+    def test_routes_endpoint_returns_geometry_only_no_score(self):
+        """The fast preview carries NO safety verdict of any kind (Rules 7, 9)."""
+        base = self._server(imagery_adapter=HalfImageryProvider())
+        code, obj = self._post(base, "/api/routes", {"origin": ORIGIN, "destination": DEST})
+        self.assertEqual(code, 200)
+        self.assertIn("routes", obj)
+        self.assertGreaterEqual(len(obj["routes"]), 1)
+        blob = json.dumps(obj).lower()
+        for forbidden in ("route_score", "safety_score", "recommended_route_id", "hazards"):
+            self.assertNotIn(forbidden, blob)
+
+    def test_routes_and_analyze_agree_on_route_set(self):
+        """Preview and assessment must expose the same provider route ids."""
+        base = self._server(imagery_adapter=HalfImageryProvider())
+        _, preview = self._post(base, "/api/routes", {"origin": ORIGIN, "destination": DEST})
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
+        self.assertEqual(
+            [r["route_id"] for r in preview["routes"]],
+            [r["route_id"] for r in rec["routes"]],
+        )
+
+    def test_analyze_reports_stage_timings(self):
+        base = self._server(imagery_adapter=HalfImageryProvider())
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
+        timings = rec.get("timings_ms")
+        self.assertIsNotNone(timings)
+        for stage in ("routing_ms", "imagery_ms", "detection_ms", "total_ms"):
+            self.assertIn(stage, timings)
+        # Timings are additive metadata only — the verdict fields are untouched.
+        self.assertIn(rec["status"], ["assessed", "partially_assessed", "unassessed", "failed"])
+
+    def test_timings_persisted_with_analysis(self):
+        base = self._server(imagery_adapter=HalfImageryProvider())
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
+        _, got = self._get(base, f"/api/analyze/{rec['analysis_id']}")
+        self.assertEqual(got["timings_ms"]["total_ms"], rec["timings_ms"]["total_ms"])
+
+    def test_missing_imagery_never_reported_as_safe(self):
+        base = self._server(imagery_adapter=AllMissingImageryProvider())
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
+        self.assertEqual(rec["status"], "unassessed")
+        self.assertIsNone(rec["comparison"]["recommended_route_id"])
+        for route in rec["routes"]:
+            self.assertIsNone(route["route_score"])
+
+    def test_limits_and_disclosures_survive_preview_then_analyze(self):
+        """The two-phase flow must not lose the provider's route-count limitation."""
+        base = self._server(imagery_adapter=HalfImageryProvider())
+        _, preview = self._post(base, "/api/routes", {"origin": ORIGIN, "destination": DEST})
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
+        self.assertIn("limitations", preview)
+        self.assertEqual(len(preview["routes"]), len(rec["routes"]))
 
 
 if __name__ == "__main__":

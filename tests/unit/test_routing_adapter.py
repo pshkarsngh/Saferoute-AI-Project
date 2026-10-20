@@ -4,6 +4,7 @@ Phase ID: PHASE_13
 Follows TRD §10, ARCHITECTURE §8, master_rules.md Rules 8, 10, 13, 14.
 """
 
+import time
 import unittest
 from pathlib import Path
 
@@ -179,6 +180,117 @@ class TestRoutingAdapter(unittest.TestCase):
         self.assertIn("duration_s", first_route)
         self.assertIn("geometry", first_route)
         self.assertIn("segments", first_route)
+
+
+class TestOSRMResponseCache(unittest.TestCase):
+    """PHASE_27: identical OSRM queries within the TTL are not refetched.
+
+    The UI requests the same coordinates twice (fast geometry preview, then the
+    full assessment), so the adapter reuses one provider response. Nothing is
+    fabricated: only successful responses are cached, and a different query or
+    an expired entry always hits the provider again (Rules 9, 10).
+    """
+
+    def setUp(self):
+        self.adapter = OSRMRoutingAdapter()
+        self.origin = Coordinate(latitude=12.9716, longitude=77.5946)
+        self.destination = Coordinate(latitude=12.9352, longitude=77.6245)
+        self.request = RouteRequest(origin=self.origin, destination=self.destination)
+        self.fetch_calls = []
+
+    def _patch_fetch(self, adapter, payload, status=RoutingStatus.OK):
+        """Replace the network call with a recorder returning a canned payload."""
+
+        def fake_fetch(url):
+            self.fetch_calls.append(url)
+            return payload, status, None
+
+        adapter._fetch_with_retry = fake_fetch  # type: ignore[assignment]
+        return adapter
+
+    @staticmethod
+    def _payload():
+        return {
+            "code": "Ok",
+            "routes": [
+                {
+                    "distance": 1000.0,
+                    "duration": 100.0,
+                    "geometry": {"coordinates": [[77.60, 12.97], [77.61, 12.98]]},
+                    "legs": [
+                        {
+                            "steps": [
+                                {
+                                    "name": "Test Road",
+                                    "distance": 1000.0,
+                                    "duration": 100.0,
+                                    "geometry": {
+                                        "type": "LineString",
+                                        "coordinates": [[77.60, 12.97], [77.61, 12.98]],
+                                    },
+                                }
+                            ]
+                        }
+                    ],
+                }
+            ],
+        }
+
+    def test_identical_query_is_cached(self):
+        self._patch_fetch(self.adapter, self._payload())
+        first = self.adapter.get_routes(self.request)
+        second = self.adapter.get_routes(self.request)
+
+        self.assertEqual(first.status, RoutingStatus.OK)
+        self.assertEqual(len(self.fetch_calls), 1, "second identical query must reuse the cache")
+        self.assertEqual(
+            [r.route_id for r in first.routes], [r.route_id for r in second.routes]
+        )
+
+    def test_different_coordinates_refetch(self):
+        self._patch_fetch(self.adapter, self._payload())
+        self.adapter.get_routes(self.request)
+        other = RouteRequest(
+            origin=self.origin,
+            destination=Coordinate(latitude=12.9000, longitude=77.7000),
+        )
+        self.adapter.get_routes(other)
+        self.assertEqual(len(self.fetch_calls), 2)
+
+    def test_expired_entry_refetches(self):
+        self._patch_fetch(self.adapter, self._payload())
+        self.adapter.get_routes(self.request)
+        # Force the cached entry to look older than the TTL.
+        key = self.adapter._response_cache_key(self.request)
+        _, response = self.adapter._response_cache[key]
+        self.adapter._response_cache[key] = (
+            time.monotonic() - self.adapter.ROUTE_CACHE_TTL_SECONDS - 1.0,
+            response,
+        )
+        self.adapter.get_routes(self.request)
+        self.assertEqual(len(self.fetch_calls), 2)
+
+    def test_failed_query_is_not_cached(self):
+        self._patch_fetch(self.adapter, None, status=RoutingStatus.PROVIDER_TIMEOUT)
+        first = self.adapter.get_routes(self.request)
+        second = self.adapter.get_routes(self.request)
+
+        self.assertEqual(first.status, RoutingStatus.PROVIDER_TIMEOUT)
+        self.assertEqual(
+            len(self.fetch_calls), 2,
+            "a provider outage must not be masked by a cached failure",
+        )
+
+    def test_cache_evicts_beyond_max_entries(self):
+        self._patch_fetch(self.adapter, self._payload())
+        self.adapter.ROUTE_CACHE_MAX_ENTRIES = 2
+        for i in range(4):
+            req = RouteRequest(
+                origin=self.origin,
+                destination=Coordinate(latitude=12.90 + i * 0.01, longitude=77.70),
+            )
+            self.adapter.get_routes(req)
+        self.assertLessEqual(len(self.adapter._response_cache), 2)
 
 
 if __name__ == "__main__":

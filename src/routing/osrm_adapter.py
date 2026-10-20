@@ -40,6 +40,16 @@ class OSRMRoutingAdapter(RoutingProvider):
     - Rule 13: Secrets/credentials (if any) managed strictly via environment.
     """
 
+    # PHASE_27: identical coordinate pairs asked twice in quick succession (the
+    # UI fetches /api/routes for instant geometry, then /api/analyze for the
+    # assessment) reuse one provider response. OSRM results are deterministic
+    # for a fixed query (no live traffic input), so this is pure duplicate-work
+    # elimination: nothing is fabricated, padded or re-scored (Rules 7, 9, 10).
+    # Only successful responses are cached, so a provider outage is never
+    # amplified by a stale hit.
+    ROUTE_CACHE_TTL_SECONDS = 120.0
+    ROUTE_CACHE_MAX_ENTRIES = 32
+
     def __init__(
         self,
         base_url: str = "https://router.project-osrm.org",
@@ -56,13 +66,31 @@ class OSRMRoutingAdapter(RoutingProvider):
         self.backoff_factor = backoff_factor
         self.segmenter = segmenter or RouteSegmenter()
         self._route_cache: Dict[str, Route] = {}
+        self._response_cache: Dict[str, Tuple[float, RouteResponse]] = {}
 
     @property
     def provider_name(self) -> str:
         return "osrm"
 
+    def _response_cache_key(self, request: RouteRequest) -> str:
+        return (
+            f"{self.profile}|{request.origin.to_tuple()}|"
+            f"{request.destination.to_tuple()}|{int(bool(request.alternatives))}"
+        )
+
+    def _cache_put(self, key: str, response: RouteResponse) -> None:
+        if len(self._response_cache) >= self.ROUTE_CACHE_MAX_ENTRIES:
+            oldest = min(self._response_cache.items(), key=lambda kv: kv[1][0])[0]
+            self._response_cache.pop(oldest, None)
+        self._response_cache[key] = (time.monotonic(), response)
+
     def get_routes(self, request: RouteRequest) -> RouteResponse:
         """Resolve driving routes between origin and destination via OSRM API."""
+        cache_key = self._response_cache_key(request)
+        cached = self._response_cache.get(cache_key)
+        if cached is not None and time.monotonic() - cached[0] < self.ROUTE_CACHE_TTL_SECONDS:
+            return cached[1]
+
         now_iso = datetime.now(timezone.utc).isoformat()
         req_id = f"osrm-{uuid.uuid4().hex[:8]}"
 
@@ -156,7 +184,7 @@ class OSRMRoutingAdapter(RoutingProvider):
         if len(parsed_routes) < 4:
             limitations.append("fewer_than_four_routes_returned")
 
-        return RouteResponse(
+        response = RouteResponse(
             status=RoutingStatus.OK,
             provider=self.provider_name,
             routes=parsed_routes,
@@ -164,6 +192,8 @@ class OSRMRoutingAdapter(RoutingProvider):
             retrieved_at=now_iso,
             limitations=limitations,
         )
+        self._cache_put(cache_key, response)
+        return response
 
     def get_route_geometry(self, route_id: str) -> Optional[RouteGeometry]:
         route = self._route_cache.get(route_id)

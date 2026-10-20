@@ -256,6 +256,27 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
         return True
 
+    def _serve_spa_index(self) -> bool:
+        """Serve the SPA index.html for client-side routes. Returns True if handled."""
+        if not self.static_dir:
+            return False
+        candidate = (self.static_dir / "index.html").resolve()
+        try:
+            candidate.relative_to(self.static_dir.resolve())
+        except ValueError:
+            return False  # path traversal attempt
+        if not candidate.is_file():
+            return False
+        ctype, _ = mimetypes.guess_type(str(candidate))
+        body = candidate.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", ctype or "text/html")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return True
+
     def do_OPTIONS(self):
         self._send(204, {})
 
@@ -264,6 +285,9 @@ class _Handler(BaseHTTPRequestHandler):
         parts = [p for p in path.split("/") if p]
         if not path.startswith("/api"):
             if self.static_dir and self._serve_static(path):
+                return
+            # SPA fallback for client-side routes (history API refresh/direct nav)
+            if self.static_dir and self._serve_spa_index():
                 return
             self._send(404, _error("not_found", f"Unknown path '{path}'."))
             return
