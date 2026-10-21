@@ -43,3 +43,7 @@ weights/
 # Nested standalone frontend repository (its own git repo -> github.com/pshkarsngh/SafeRouteAI).
 # Contains node_modules/dist (~1 GB); pushed to its own remote, not this one.
 frontend/Frontend/
+
+# Local demo video (~115 MB; video.mp4 alone is 105 MB, over GitHub's 100 MB limit).
+# Kept on disk but never staged; the built app references assets/, not these files.
+frontend/video/
