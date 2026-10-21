@@ -61,7 +61,8 @@ class Settings:
     llm_enabled: bool = True
     llm_base_url: str = "http://127.0.0.1:11434"
     llm_model: str = "llama3.2"
-    llm_timeout_seconds: float = 30.0
+    # PHASE_28: bounded wait for the local model (see config/app.yaml).
+    llm_timeout_seconds: float = 45.0
 
     # --- Misc ----------------------------------------------------------
     user_agent: str = "SafeRouteAI/1.0 (road-safety research; contact: local)"
@@ -123,7 +124,7 @@ def load_settings(
         llm_enabled=bool(llm.get("enabled", True)),
         llm_base_url=str(llm.get("base_url", "http://127.0.0.1:11434")),
         llm_model=str(llm.get("model", "llama3.2")),
-        llm_timeout_seconds=float(llm.get("timeout_seconds", 30.0)),
+        llm_timeout_seconds=float(llm.get("timeout_seconds", 45.0)),
         user_agent=str(app.get("user_agent", "SafeRouteAI/1.0 (road-safety research)")),
         static_dir=str(app.get("static_dir", "frontend")),
         host=str(server.get("host", "127.0.0.1")),

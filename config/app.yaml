@@ -41,7 +41,11 @@ app:
     # Installed local Ollama tag (verified with `ollama list`), not "llama3.2":
     # the configured model must exist locally or every explanation falls back.
     model: "llama3:latest"
-    timeout_seconds: 30.0
+    # PHASE_28: bounded wait for the local model. The grounded prompt is small
+    # (a few kB) and measured generation is ~2 s warm / ~7 s cold, so 45 s is
+    # ample headroom for a cold model load behind another queued request while
+    # still guaranteeing the API never waits unbounded.
+    timeout_seconds: 45.0
 
   server:
     host: "127.0.0.1"
