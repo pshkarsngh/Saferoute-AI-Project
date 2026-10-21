@@ -196,15 +196,54 @@ class SafeRouteAPI:
         return 200, rec.get("explanation", {})
 
     def facilities(self, payload: Dict[str, Any]):
+        """Nearby facilities — CONTEXT ONLY (Rule 11).
+
+        Two request shapes are supported:
+
+        * ``{"location": {...}}`` (or a place name) — a circle around one point.
+        * ``{"route": {"polylines": [[[lon, lat], ...], ...]}}`` — the corridor
+          around one or more route geometries, which is what the SafeRoute UI
+          uses so the browser never has to query OpenStreetMap itself.
+
+        The response always carries the provider's honest status. A provider
+        failure is never rewritten into "no hospitals exist" (Rule 20).
+        """
+        route = payload.get("route")
+        if isinstance(route, dict):
+            polylines = route.get("polylines")
+            radius = self._optional_float(payload.get("radius_m"))
+            cats = payload.get("categories")
+            include_road_access = payload.get("include_road_access", True)
+            if not isinstance(include_road_access, bool):
+                include_road_access = True
+            result = self.pipeline.facilities.get_facilities_near_route(
+                polylines,
+                radius,
+                cats,
+                include_road_access=include_road_access,
+                routing_provider=self.pipeline.routing,
+            )
+            return 200, result.to_dict()
+
         loc, err = self._resolve_location(payload, "location", "location_query", required=False)
         if loc is None:
             loc, err = self._resolve_location(payload, "destination", "destination_query", required=True)
         if err or loc is None:
             return 400, _error("invalid_request", err or "location must be {latitude, longitude} or a place name.")
-        radius = payload.get("radius_m")
+        radius = self._optional_float(payload.get("radius_m"))
         cats = payload.get("categories")
         result = self.pipeline.facilities.get_nearby_facilities(loc.latitude, loc.longitude, radius, cats)
         return 200, result.to_dict()
+
+    @staticmethod
+    def _optional_float(value: Any) -> Optional[float]:
+        """Parse an optional numeric field; an unusable value falls back to the default."""
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
 
 
 class _Handler(BaseHTTPRequestHandler):

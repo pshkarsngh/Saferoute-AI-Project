@@ -1,51 +1,96 @@
 # SafeRoute AI — Facilities Configuration
-# Phase ID: PHASE_15
+# Phase ID: PHASE_15 (extended in PHASE_29 for route-corridor lookups)
 # Follows PRD §4.7, TRD §4.7, ARCHITECTURE §8, master_rules.md Rules 11, 13, 17, 19
 #
 # Facilities are CONTEXT ONLY. They are never an input to the deterministic
 # hazard score or route ranking (Rule 11).
 
 metadata:
-  version: "facilities-v1"
-  date: "2026-10-13"
+  version: "facilities-v2"
+  date: "2026-10-21"
   default_provider: "mock"           # Offline deterministic fixtures (no network)
   live_provider: "overpass"          # OpenStreetMap Overpass API (ODbL, $0, no key)
 
 providers:
   overpass:
     base_url: "https://overpass-api.de/api/interpreter"
+    # PHASE_29: the public Overpass instances are frequently busy and answer
+    # with HTTP 502/504 or stall. The provider fails over between mirrors
+    # (the resilience the browser client used to have, now moved server-side).
+    base_urls:
+      - "https://overpass-api.de/api/interpreter"
+      - "https://overpass.kumi.systems/api/interpreter"
+      - "https://overpass.private.coffee/api/interpreter"
+    max_endpoints: 3
     timeout_seconds: 10.0
     max_retries: 2
     backoff_factor_seconds: 0.5
+    # PHASE_29: the public instance reliably answers small single-category
+    # queries and regularly refuses one large multi-category query, so each
+    # category is queried separately with a short gap in between.
+    query_gap_seconds: 0.7
+    # Overall budget for one facilities lookup. When it is spent the remaining
+    # categories are not queried and the partial result is disclosed.
+    query_deadline_seconds: 45.0
   mock:
     default_radius_m: 1000.0
 
-# Facility categories and the OpenStreetMap tag used to look them up.
+# Facility categories and the OpenStreetMap tags used to look them up.
 # Every returned record must carry the category and its source (Rule 20).
+# PHASE_29: a category may match several OpenStreetMap values, so each category
+# lists every "key=value" selector that belongs to it. The granular value is
+# reported back as the facility's `subtype`.
 categories:
   hospital:
     label: "Hospital"
-    osm_tag: "amenity=hospital"
-  pharmacy:
-    label: "Pharmacy"
-    osm_tag: "amenity=pharmacy"
+    osm_tags:
+      - "amenity=hospital"
+  medical:
+    label: "Medical facility"
+    osm_tags:
+      - "amenity=pharmacy"
+      - "amenity=clinic"
+      - "amenity=doctors"
+      - "amenity=dentist"
+      - "amenity=doctors_office"
   police:
     label: "Police Station"
-    osm_tag: "amenity=police"
+    osm_tags:
+      - "amenity=police"
   fuel:
     label: "Petrol Pump"
-    osm_tag: "amenity=fuel"
+    osm_tags:
+      - "amenity=fuel"
+      - "amenity=fuel_station"
+      - "amenity=petrol_station"
+      - "amenity=charging_station"
   hotel:
     label: "Hotel"
-    osm_tag: "tourism=hotel"
+    osm_tags:
+      - "tourism=hotel"
+      - "tourism=motel"
+      - "tourism=hostel"
+      - "tourism=guest_house"
+      - "tourism=bed_and_breakfast"
+      - "tourism=chalet"
   restaurant:
     label: "Restaurant"
-    osm_tag: "amenity=restaurant"
+    osm_tags:
+      - "amenity=restaurant"
 
 search:
   default_radius_m: 1000.0
   max_radius_m: 5000.0
   max_results_per_category: 10
+
+# PHASE_29: road access (road distance + road travel time) is only ever
+# reported when a REAL routing provider actually returned a road route for a
+# facility. A provider whose responses are synthetic (mock/fixture) is never
+# used for road access, and no road figure is ever estimated locally.
+road_access:
+  enabled: true
+  max_per_category: 1        # the nearest facility of each category
+  max_requests: 6            # bounded number of routing requests per lookup
 
 guardrails:
   facilities_in_hazard_score: false  # Rule 11: MUST remain false
