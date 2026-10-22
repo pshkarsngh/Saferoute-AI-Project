@@ -13,25 +13,39 @@ metadata:
 
 providers:
   overpass:
-    base_url: "https://overpass-api.de/api/interpreter"
+    base_url: "https://overpass.openstreetmap.fr/api/interpreter"
     # PHASE_29: the public Overpass instances are frequently busy and answer
     # with HTTP 502/504 or stall. The provider fails over between mirrors
     # (the resilience the browser client used to have, now moved server-side).
     base_urls:
+      # The public instances are reached in order and the first one that
+      # answers wins, so the mirrors that are actually reachable from this
+      # host are listed first.
+      - "https://overpass.openstreetmap.fr/api/interpreter"
       - "https://overpass-api.de/api/interpreter"
       - "https://overpass.kumi.systems/api/interpreter"
-      - "https://overpass.private.coffee/api/interpreter"
     max_endpoints: 3
-    timeout_seconds: 10.0
+    # PHASE_30 (measured 2026-10-22): the public instances are queue-bound.
+    # A single request carrying every category is answered by the first mirror
+    # in 6.2 s for a 140 km corridor (4145 facilities) and 1.2 s for a 1 km
+    # radius, while the congested official instance (overpass-api.de) needs
+    # 30-60 s for the same answer and answers 429/502/504 with "currently at
+    # capacity. All query workers are busy and the request queue is full" under
+    # load. The per-request budget therefore has to cover the queue wait of a
+    # congested instance, otherwise every mirror is abandoned before it answers.
+    # The provider clamps each individual request to whatever is left of the
+    # overall deadline below, so a slow mirror can never overrun it.
+    timeout_seconds: 45.0
     max_retries: 2
     backoff_factor_seconds: 0.5
-    # PHASE_29: the public instance reliably answers small single-category
-    # queries and regularly refuses one large multi-category query, so each
-    # category is queried separately with a short gap in between.
+    # PHASE_30: the categories are queried together in ONE request (see
+    # overpass_provider._combined_query). The per-category path remains as the
+    # fallback when the combined query returns nothing or fails.
     query_gap_seconds: 0.7
     # Overall budget for one facilities lookup. When it is spent the remaining
-    # categories are not queried and the partial result is disclosed.
-    query_deadline_seconds: 45.0
+    # categories are not queried and the partial result is disclosed. Kept well
+    # under the 90 s the UI allows for POST /api/facilities.
+    query_deadline_seconds: 60.0
   mock:
     default_radius_m: 1000.0
 
@@ -91,6 +105,7 @@ road_access:
   enabled: true
   max_per_category: 1        # the nearest facility of each category
   max_requests: 6            # bounded number of routing requests per lookup
+  max_seconds: 20.0          # bounded time slice; the facility list never waits longer
 
 guardrails:
   facilities_in_hazard_score: false  # Rule 11: MUST remain false

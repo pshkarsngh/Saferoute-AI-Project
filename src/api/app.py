@@ -91,34 +91,69 @@ class SafeRouteAPI:
         return 200, {"status": "ok", "settings": self.settings.to_safe_dict()}
 
     # ------------------------------------------------------------------ #
+    def _geocode_coordinate(self, query: str) -> Tuple[Optional[Coordinate], Optional[str]]:
+        """Resolve a place name through the live geocoder, or report why not."""
+        if self.geocoder is None:
+            return None, f"Could not resolve '{query}': no geocoding provider is configured."
+        try:
+            result = self.geocoder.geocode(query, limit=1)
+        except Exception as exc:  # noqa: BLE001 - a provider failure is reported, never hidden
+            return None, f"Could not resolve '{query}': {exc}"
+        if result.status.value == "ok" and result.candidates:
+            best = result.candidates[0]
+            return Coordinate(best.latitude, best.longitude), None
+        return None, f"Could not resolve '{query}': {result.error_message or result.status.value}"
+
     def _resolve_location(
         self,
         payload: Dict[str, Any],
         coord_key: str,
         query_key: str,
         required: bool = True,
-    ) -> Tuple[Optional[Coordinate], Optional[str]]:
-        """Resolve a location from coordinates or a place-name query."""
+        prefer_live_geocode: bool = False,
+    ) -> Tuple[Optional[Coordinate], Optional[str], str]:
+        """Resolve a location from coordinates or a place-name query.
+
+        Returns ``(coordinate, error, source)``. ``source`` records WHICH input
+        the point came from ("geocoder" or "coordinates") so the response can
+        disclose it instead of silently swapping one for the other (Rule 9).
+
+        When ``prefer_live_geocode`` is set and a place-name query is present,
+        the live geocoder's own point for that name wins over the supplied
+        coordinate: the routing provider is then asked about the real place
+        instead of about an approximate table centroid. The supplied coordinate
+        remains the fallback, so a geocoder outage never fails the request.
+        """
         raw = payload.get(coord_key)
         coord = _parse_coord(raw)
-        if coord is not None:
-            return coord, None
-
         query = payload.get(query_key)
         if query is None and isinstance(raw, str):
             query = raw
+
+        if (
+            prefer_live_geocode
+            and query
+            and self.settings.geocoding_enabled
+            and self.geocoder is not None
+        ):
+            resolved, _err = self._geocode_coordinate(str(query))
+            if resolved is not None:
+                return resolved, None, "geocoder"
+
+        if coord is not None:
+            return coord, None, "coordinates"
+
         if query:
             if not self.settings.geocoding_enabled or self.geocoder is None:
-                return None, "Geocoding is disabled on this server; supply {latitude, longitude}."
-            result = self.geocoder.geocode(str(query), limit=1)
-            if result.status.value == "ok" and result.candidates:
-                best = result.candidates[0]
-                return Coordinate(best.latitude, best.longitude), None
-            return None, f"Could not resolve '{query}': {result.error_message or result.status.value}"
+                return None, "Geocoding is disabled on this server; supply {latitude, longitude}.", ""
+            resolved, err = self._geocode_coordinate(str(query))
+            if resolved is not None:
+                return resolved, None, "geocoder"
+            return None, err, ""
 
         if required:
-            return None, "location must be {latitude, longitude} or a place name (destination_query)."
-        return None, None
+            return None, "location must be {latitude, longitude} or a place name (destination_query).", ""
+        return None, None, ""
 
     def geocode(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
         query = payload.get("query") or payload.get("q")
@@ -135,30 +170,46 @@ class SafeRouteAPI:
         return code, result.to_dict()
 
     def routes(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-        origin, err = self._resolve_location(payload, "origin", "origin_query", required=False)
+        prefer = bool(payload.get("resolve_place_names"))
+        origin, err, origin_source = self._resolve_location(
+            payload, "origin", "origin_query", required=False, prefer_live_geocode=prefer)
         if err:
             return 400, _error("invalid_request", err)
         if origin is None:
             origin = Coordinate(12.9716, 77.5946)
-        destination, err = self._resolve_location(payload, "destination", "destination_query", required=True)
+            origin_source = "default"
+        destination, err, destination_source = self._resolve_location(
+            payload, "destination", "destination_query", required=True, prefer_live_geocode=prefer)
         if err or destination is None:
             return 400, _error("invalid_request", err or "destination is required.",
                                "No geocoding provider resolved the destination.")
-        return 200, self.pipeline.resolve_routes(origin, destination)
+        result = self.pipeline.resolve_routes(origin, destination)
+        result["origin_resolution"] = origin_source
+        result["destination_resolution"] = destination_source
+        return 200, result
 
     def analyze(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
-        origin, err = self._resolve_location(payload, "origin", "origin_query", required=False)
+        prefer = bool(payload.get("resolve_place_names"))
+        origin, err, origin_source = self._resolve_location(
+            payload, "origin", "origin_query", required=False, prefer_live_geocode=prefer)
         if err:
             return 400, _error("invalid_request", err)
         if origin is None:
             origin = Coordinate(12.9716, 77.5946)
-        destination, err = self._resolve_location(payload, "destination", "destination_query", required=True)
+            origin_source = "default"
+        destination, err, destination_source = self._resolve_location(
+            payload, "destination", "destination_query", required=True, prefer_live_geocode=prefer)
         if err or destination is None:
             return 400, _error("invalid_request", err or "destination is required.",
                                "No geocoding provider resolved the destination.")
         record = self.pipeline.analyze(origin, destination)
         record["destination_query"] = payload.get("destination_query")
         record["origin_query"] = payload.get("origin_query")
+        # Disclose WHICH input the routed points came from, so a geocoded
+        # place is never presented as if the supplied coordinate was used
+        # (Rule 9).
+        record["origin_resolution"] = origin_source
+        record["destination_resolution"] = destination_source
         self.store.save_analysis(record)
         return 200, record
 
@@ -198,7 +249,7 @@ class SafeRouteAPI:
     def facilities(self, payload: Dict[str, Any]):
         """Nearby facilities — CONTEXT ONLY (Rule 11).
 
-        Two request shapes are supported:
+        Three request shapes are supported:
 
         * ``{"location": {...}}`` (or a place name) — a circle around one point.
         * ``{"route": {"polylines": [[[lon, lat], ...], ...]}}`` — the corridor
@@ -207,7 +258,29 @@ class SafeRouteAPI:
 
         The response always carries the provider's honest status. A provider
         failure is never rewritten into "no hospitals exist" (Rule 20).
+
+        PHASE_32 adds a third shape:
+
+        * ``{"routes": [{"route_id": "...", "polylines": [...]}, ...]}`` — one
+          facility result PER ROUTE. Each result is measured against that
+          route's own geometry, so alternative routes do not share one corridor
+          list. The OpenStreetMap query is still a single shared request.
         """
+        routes = payload.get("routes")
+        if isinstance(routes, list):
+            radius = self._optional_float(payload.get("radius_m"))
+            cats = payload.get("categories")
+            include_road_access = payload.get("include_road_access", True)
+            if not isinstance(include_road_access, bool):
+                include_road_access = True
+            return 200, self.pipeline.facilities.get_facilities_for_routes(
+                routes,
+                radius,
+                cats,
+                include_road_access=include_road_access,
+                routing_provider=self.pipeline.routing,
+            )
+
         route = payload.get("route")
         if isinstance(route, dict):
             polylines = route.get("polylines")
@@ -225,9 +298,11 @@ class SafeRouteAPI:
             )
             return 200, result.to_dict()
 
-        loc, err = self._resolve_location(payload, "location", "location_query", required=False)
+        loc, err, _source = self._resolve_location(
+            payload, "location", "location_query", required=False)
         if loc is None:
-            loc, err = self._resolve_location(payload, "destination", "destination_query", required=True)
+            loc, err, _source = self._resolve_location(
+                payload, "destination", "destination_query", required=True)
         if err or loc is None:
             return 400, _error("invalid_request", err or "location must be {latitude, longitude} or a place name.")
         radius = self._optional_float(payload.get("radius_m"))

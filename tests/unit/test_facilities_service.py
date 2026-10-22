@@ -572,5 +572,129 @@ class TestFacilitiesConfiguration(unittest.TestCase):
         self.assertEqual(provider.base_urls[0], provider.base_url)
 
 
+class TestFacilitiesPerRouteLookup(unittest.TestCase):
+    """PHASE_32 — each route is measured against its OWN geometry."""
+
+    ROUTE_A = [[77.5946, 12.9716], [77.5950, 12.9717]]
+    ROUTE_B = [[77.5970, 12.9718], [77.5975, 12.9720]]
+
+    def test_each_route_receives_only_its_own_nearby_facilities(self):
+        near_a = _facility(lat=12.9717, lon=77.5947, facility_id="a-1")
+        near_b = _facility(lat=12.9720, lon=77.5975, facility_id="b-1")
+        prov = StubProvider(facilities=[near_a, near_b])
+        svc = FacilitiesService(provider=prov)
+
+        body = svc.get_facilities_for_routes(
+            [
+                {"route_id": "route-a", "polylines": [self.ROUTE_A]},
+                {"route_id": "route-b", "polylines": [self.ROUTE_B]},
+            ],
+            radius_m=100,
+            include_road_access=False,
+        )
+
+        self.assertEqual(body["status"], "ok")
+        self.assertEqual(set(body["routes"]), {"route-a", "route-b"})
+        route_a = body["routes"]["route-a"]
+        route_b = body["routes"]["route-b"]
+        self.assertEqual([f["facility_id"] for f in route_a["facilities"]], ["a-1"])
+        self.assertEqual([f["facility_id"] for f in route_b["facilities"]], ["b-1"])
+        self.assertLess(route_a["facilities"][0]["distance_m"], 100)
+        self.assertLess(route_b["facilities"][0]["distance_m"], 100)
+        self.assertNotEqual(
+            route_a["facilities"][0]["distance_m"],
+            route_b["facilities"][0]["distance_m"],
+        )
+
+    def test_one_provider_query_serves_every_route(self):
+        prov = StubProvider(facilities=[_facility()])
+        svc = FacilitiesService(provider=prov)
+        svc.get_facilities_for_routes(
+            [{"route_id": f"r{i}", "polylines": [self.ROUTE_A]} for i in range(3)],
+            radius_m=1000,
+            include_road_access=False,
+        )
+        self.assertEqual(len(prov.bbox_calls), 1)
+
+    def test_route_without_geometry_does_not_poison_the_other_routes(self):
+        prov = StubProvider(facilities=[_facility(lat=12.9717, lon=77.5947)])
+        svc = FacilitiesService(provider=prov)
+        body = svc.get_facilities_for_routes(
+            [
+                {"route_id": "ok", "polylines": [self.ROUTE_A]},
+                {"route_id": "empty", "polylines": []},
+            ],
+            radius_m=100,
+            include_road_access=False,
+        )
+        self.assertEqual(body["routes"]["ok"]["status"], "ok")
+        self.assertEqual(body["routes"]["empty"]["status"], "invalid_request")
+        self.assertIn(
+            "no_route_geometry_supplied",
+            body["routes"]["empty"]["limitations"],
+        )
+
+    def test_empty_route_list_is_rejected_honestly(self):
+        svc = FacilitiesService(provider=StubProvider(facilities=[]))
+        body = svc.get_facilities_for_routes([], radius_m=1000, include_road_access=False)
+        self.assertEqual(body["status"], "invalid_request")
+        self.assertEqual(body["routes"], {})
+        self.assertIn("no_routes_supplied", body["limitations"])
+
+    def test_provider_failure_keeps_its_status_for_every_route(self):
+        prov = StubProvider(
+            status=FacilityStatus.PROVIDER_ERROR,
+            error_message="provider down",
+        )
+        svc = FacilitiesService(provider=prov)
+        body = svc.get_facilities_for_routes(
+            [{"route_id": f"r{i}", "polylines": [self.ROUTE_A]} for i in range(2)],
+            radius_m=1000,
+            include_road_access=False,
+        )
+        self.assertEqual(body["status"], "provider_error")
+        for route in body["routes"].values():
+            self.assertEqual(route["status"], "provider_error")
+            self.assertNotEqual(route["status"], "unavailable")
+            self.assertEqual(route["facilities_count"], 0)
+
+    def test_road_access_requests_share_one_bounded_budget(self):
+        prov = StubProvider(facilities=[
+            _facility(lat=12.9717, lon=77.5947, facility_id="a-1"),
+            _facility(category="fuel", subtype="fuel", lat=12.9720, lon=77.5975,
+                      facility_id="b-1"),
+        ])
+        routing = StubRoutingProvider()
+        svc = FacilitiesService(provider=prov)
+        body = svc.get_facilities_for_routes(
+            [
+                {"route_id": "route-a", "polylines": [self.ROUTE_A]},
+                {"route_id": "route-b", "polylines": [self.ROUTE_B]},
+            ],
+            radius_m=100,
+            include_road_access=True,
+            routing_provider=routing,
+        )
+        self.assertLessEqual(len(routing.requests), 6)
+        self.assertTrue(any(
+            f["road_travel_time_s"] is not None
+            for route in body["routes"].values()
+            for f in route["facilities"]
+        ))
+
+    def test_per_route_payload_contains_no_score_fields(self):
+        prov = StubProvider(facilities=[_facility()])
+        svc = FacilitiesService(provider=prov)
+        body = svc.get_facilities_for_routes(
+            [{"route_id": "route-a", "polylines": [self.ROUTE_A]}],
+            radius_m=1000,
+            include_road_access=False,
+        )
+        blob = str(body).lower()
+        for banned in ("route_score", "segment_score", "safety_score", "hazard_density",
+                       "severity"):
+            self.assertNotIn(banned, blob)
+
+
 if __name__ == "__main__":
     unittest.main()

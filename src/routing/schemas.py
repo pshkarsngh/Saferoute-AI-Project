@@ -127,11 +127,15 @@ class RouteResponse:
     retrieved_at: str = ""
     limitations: List[str] = field(default_factory=list)
     error_message: Optional[str] = None
+    # PHASE_30: the routing providers that actually contributed routes. Purely
+    # additive — a single-provider response simply carries one name.
+    providers: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "status": self.status.value,
             "provider": self.provider,
+            "providers": list(self.providers),
             "routes_count": len(self.routes),
             "routes": [r.to_dict() for r in self.routes],
             "request_id": self.request_id,

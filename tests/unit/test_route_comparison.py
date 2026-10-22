@@ -176,6 +176,59 @@ class TestRouteComparer(unittest.TestCase):
         self.assertIn("recommendation", policy)
         self.assertAlmostEqual(self.cmp.min_assessed_length_fraction, 0.50, places=4)
 
+    # ------------------------------------------- cross-provider times ----- #
+    def test_cross_provider_travel_times_are_not_compared(self):
+        """Two routing engines -> two speed models -> no travel-time claim.
+
+        The measured live durations differ by ~2.5x for the SAME road, so a
+        cross-provider delta would report an engine difference as if it were a
+        difference between the roads (Rule 20).
+        """
+        a = _route("route_a", 88.0, distance_m=5000.0, duration_s=600.0)
+        b = _route("route_b", 71.5, distance_m=5000.0, duration_s=3677.0)
+        a["provider"] = "osrm"
+        b["provider"] = "valhalla"
+
+        out = self.cmp.build([a, b])
+
+        recommendation = " ".join(out["recommendation_reasons"])
+        self.assertNotIn("slower", recommendation)
+        self.assertNotIn("faster", recommendation)
+        self.assertIn("not directly comparable", recommendation)
+
+        rank2 = out["ranking"][1]
+        reasons = " ".join(rank2["reasons"])
+        self.assertNotIn("in travel time", reasons)
+        self.assertIn("not directly comparable", reasons)
+
+    def test_same_provider_travel_times_are_still_compared(self):
+        a = _route("route_a", 88.0, distance_m=5000.0, duration_s=600.0)
+        b = _route("route_b", 71.5, distance_m=6200.0, duration_s=780.0)
+        a["provider"] = "osrm"
+        b["provider"] = "osrm"
+
+        out = self.cmp.build([a, b])
+
+        self.assertIn("180 s faster", " ".join(out["recommendation_reasons"]))
+        self.assertIn("in travel time", " ".join(out["ranking"][1]["reasons"]))
+        self.assertNotIn("not directly comparable", " ".join(out["recommendation_reasons"]))
+
+    def test_ranking_entry_carries_the_routing_provider(self):
+        a = _route("route_a", 88.0)
+        a["provider"] = "osrm"
+        out = self.cmp.build([a])
+        self.assertEqual(out["ranking"][0]["provider"], "osrm")
+        self.assertEqual(out["providers"], ["osrm"])
+
+    def test_comparison_lists_every_contributing_provider(self):
+        a = _route("route_a", 88.0)
+        b = _route("route_b", 71.5)
+        a["provider"] = "osrm"
+        b["provider"] = "valhalla"
+        out = self.cmp.build([a, b])
+        self.assertEqual(sorted(out["providers"]), ["osrm", "valhalla"])
+        self.assertIn("own estimate", out["travel_time_note"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,7 +13,7 @@ provider:
   # Live OSRM (keyless OpenStreetMap) is the real-world default. Set to "mock"
   # (or SAFEROUTE_ROUTING_PROVIDER=mock) for offline/deterministic operation.
   # Mock routes are synthetic and are NEVER substituted automatically (Rule 10).
-  default_provider: "osrm"
+  default_provider: "multi"
   timeout_seconds: 5.0
   max_retries: 3
   backoff_factor_seconds: 0.5
@@ -24,6 +24,31 @@ provider:
     geometries: "geojson"
     alternatives: true
     steps: true
+  # PHASE_30: the second live routing provider. The public OSRM demo server
+  # frequently returns a SINGLE route for long urban corridors (measured live:
+  # Whitefield -> Bengaluru returns one route even with alternatives=true),
+  # while the public Valhalla service returns several genuinely different paths
+  # for the same corridor. Both are keyless, free and OpenStreetMap-based.
+  valhalla:
+    base_url: "https://valhalla1.openstreetmap.de"
+    costing: "auto"
+    alternates: 3
+    timeout_seconds: 8.0
+    max_retries: 2
+    backoff_factor_seconds: 0.5
+  # PHASE_30: composed provider. The candidates actually returned by the
+  # providers above are merged, de-duplicated by corridor geometry and capped.
+  # Nothing is synthesised: if the providers return one route in total, exactly
+  # one route is emitted (Rule 10).
+  multi:
+    providers:
+      - osrm
+      - valhalla
+    max_routes: 4
+    # Two routes are treated as the same corridor when at least this share of
+    # each route's geometry lies within `corridor_tolerance_m` of the other.
+    corridor_overlap_threshold: 0.80
+    corridor_tolerance_m: 60.0
 
 # Segmentation Policy (TRD §10.1, PRD FR-R4)
 segmentation:

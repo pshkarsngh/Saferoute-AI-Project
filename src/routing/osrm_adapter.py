@@ -47,7 +47,13 @@ class OSRMRoutingAdapter(RoutingProvider):
     # elimination: nothing is fabricated, padded or re-scored (Rules 7, 9, 10).
     # Only successful responses are cached, so a provider outage is never
     # amplified by a stale hit.
-    ROUTE_CACHE_TTL_SECONDS = 120.0
+    #
+    # The window is long enough to span one full analysis plus the repeat the
+    # user runs next: a fresh response mints a new request id (and therefore new
+    # route ids), which would otherwise invalidate the grounded explanation
+    # cache for otherwise identical evidence. It is still short (10 minutes) and
+    # bounded, and it never claims live traffic.
+    ROUTE_CACHE_TTL_SECONDS = 600.0
     ROUTE_CACHE_MAX_ENTRIES = 32
 
     def __init__(

@@ -16,7 +16,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from src.geocoding.interfaces import GeocodingProvider
 from src.geocoding.schemas import GeocodeCandidate, GeocodeResult, GeocodeStatus
@@ -61,6 +61,15 @@ class NominatimGeocoder(GeocodingProvider):
         self._fetch_json = fetch_json or _default_fetch_json
         if min_interval_seconds is not None:
             self._min_interval_seconds = float(min_interval_seconds)
+        # PHASE_31: the UI resolves the same two place names once for the routing
+        # preview and again for the assessment. Nominatim forbids more than one
+        # request per second, so the duplicate lookup is served from a bounded
+        # cache for a short window. Only a successful answer is cached; a
+        # failure is always retried and reported honestly (Rule 20).
+        self.GEOCODE_CACHE_TTL_SECONDS = 3600.0
+        self.GEOCODE_CACHE_MAX_ENTRIES = 256
+        self._cache: Dict[str, Tuple[float, GeocodeResult]] = {}
+        self._cache_lock = threading.Lock()
 
     @property
     def provider_name(self) -> str:
@@ -112,6 +121,13 @@ class NominatimGeocoder(GeocodingProvider):
         if self.country_codes:
             params["countrycodes"] = self.country_codes
 
+        cache_key = f"{q.lower()}|{params['limit']}|{self.country_codes}"
+        now_mono = time.monotonic()
+        with self._cache_lock:
+            hit = self._cache.get(cache_key)
+            if hit is not None and now_mono - hit[0] < self.GEOCODE_CACHE_TTL_SECONDS:
+                return hit[1]
+
         data, status, err = self._request("/search", params)
         if status != GeocodeStatus.OK or data is None:
             return GeocodeResult(status=status, provider=self.provider_name, query=q,
@@ -144,8 +160,14 @@ class NominatimGeocoder(GeocodingProvider):
             return GeocodeResult(status=GeocodeStatus.NO_RESULTS, provider=self.provider_name,
                                  query=q, retrieved_at=now,
                                  error_message="No matching place found.")
-        return GeocodeResult(status=GeocodeStatus.OK, provider=self.provider_name, query=q,
-                             candidates=candidates, retrieved_at=now)
+        result = GeocodeResult(status=GeocodeStatus.OK, provider=self.provider_name, query=q,
+                               candidates=candidates, retrieved_at=now)
+        with self._cache_lock:
+            if len(self._cache) >= self.GEOCODE_CACHE_MAX_ENTRIES:
+                oldest = min(self._cache.items(), key=lambda kv: kv[1][0])[0]
+                self._cache.pop(oldest, None)
+            self._cache[cache_key] = (now_mono, result)
+        return result
 
     def reverse(self, latitude: float, longitude: float) -> GeocodeResult:
         now = datetime.now(timezone.utc).isoformat()

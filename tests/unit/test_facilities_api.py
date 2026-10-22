@@ -199,5 +199,48 @@ class TestFacilitiesApi(unittest.TestCase):
             self.assertNotIn(banned, blob)
 
 
+    # ------------------------------------------------------------------ #
+    # Per-route request shape (PHASE_32)
+    # ------------------------------------------------------------------ #
+    def test_per_route_request_returns_one_result_per_route_id(self):
+        code, obj = self.api.facilities({
+            "routes": [
+                {"route_id": "route-a", "polylines": [ROUTE]},
+                {"route_id": "route-b", "polylines": [ROUTE]},
+            ],
+            "radius_m": 1000,
+            "categories": ["hospital", "medical"],
+            "include_road_access": False,
+        })
+        self.assertEqual(code, 200)
+        self.assertEqual(obj["status"], "ok")
+        self.assertEqual(set(obj["routes"]), {"route-a", "route-b"})
+        for entry in obj["routes"].values():
+            self.assertEqual(entry["facilities_count"], 1)
+            self.assertEqual(entry["distance_basis"], DISTANCE_STRAIGHT_LINE)
+            self.assertTrue(entry["source_attribution"])
+        # One shared public-provider query, not one per route.
+        self.assertEqual(len(self.provider.bbox_calls), 1)
+
+    def test_per_route_request_without_routes_is_reported_honestly(self):
+        code, obj = self.api.facilities({"routes": []})
+        self.assertEqual(code, 200)
+        self.assertEqual(obj["status"], "invalid_request")
+        self.assertEqual(obj["routes"], {})
+        self.assertIn("no_routes_supplied", obj["limitations"])
+
+    def test_per_route_request_can_mix_valid_and_missing_geometry(self):
+        code, obj = self.api.facilities({
+            "routes": [
+                {"route_id": "with-geometry", "polylines": [ROUTE]},
+                {"route_id": "without-geometry", "polylines": []},
+            ],
+            "include_road_access": False,
+        })
+        self.assertEqual(code, 200)
+        self.assertEqual(obj["routes"]["with-geometry"]["status"], "ok")
+        self.assertEqual(obj["routes"]["without-geometry"]["status"], "invalid_request")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -312,6 +312,230 @@ class FacilitiesService:
         return self._decorate(result)
 
     # ------------------------------------------------------------------ #
+    # Per-route corridor lookup (PHASE_32)
+    # ------------------------------------------------------------------ #
+    def get_facilities_for_routes(
+        self,
+        routes: Sequence[Any],
+        radius_m: Optional[float] = None,
+        categories: Optional[Sequence[str]] = None,
+        include_road_access: bool = True,
+        routing_provider: Any = None,
+    ) -> Dict[str, Any]:
+        """Return ONE facility result per route, keyed by ``route_id``.
+
+        Every route is measured against its OWN geometry: a facility belongs to
+        a route only when its straight-line distance to that route is within the
+        requested radius. The OpenStreetMap lookup itself is shared (one query
+        over the union of the corridors), so N routes do not cost N public
+        provider requests — the per-route partitioning happens locally on the
+        same honest records.
+
+        Facilities remain context only; nothing here is fed into a score
+        (Rule 11). A provider failure keeps its own status for every route and
+        is never rewritten as "no facilities exist" (Rule 20).
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        radius = self._resolve_radius(radius_m)
+        cats = self._resolve_categories(categories)
+
+        prepared: List[Tuple[str, List[List[Tuple[float, float]]]]] = []
+        for index, entry in enumerate(routes or []):
+            if not isinstance(entry, dict):
+                continue
+            route_id = str(entry.get("route_id") or f"route-{index + 1}")
+            prepared.append((route_id, normalise_polylines(entry.get("polylines"))))
+
+        if not prepared:
+            return {
+                "status": FacilityStatus.INVALID_REQUEST.value,
+                "provider": self.provider.provider_name,
+                "retrieved_at": now,
+                "radius_m": round(float(radius), 1),
+                "categories_requested": list(cats),
+                "routes": {},
+                "limitations": ["no_routes_supplied"],
+                "error_message": (
+                    "No routes were supplied, so there is no route geometry to "
+                    "search facilities around."
+                ),
+            }
+
+        all_lines = [line for _route_id, lines in prepared for line in lines]
+        bbox = polylines_bbox(all_lines, pad_m=radius)
+        raw: Optional[FacilityResult] = None
+        if bbox is not None:
+            raw = self.provider.get_facilities_in_bbox(bbox, list(cats))
+
+        results: Dict[str, FacilityResult] = {}
+        lines_by_id: Dict[str, List[List[Tuple[float, float]]]] = {}
+        for route_id, lines in prepared:
+            lines_by_id[route_id] = lines
+            reference = lines[0][0] if lines else (0.0, 0.0)
+            base = dict(
+                provider=self.provider.provider_name,
+                categories_requested=list(cats),
+                radius_m=radius,
+                origin_latitude=reference[1],
+                origin_longitude=reference[0],
+                retrieved_at=now,
+            )
+
+            if not lines or raw is None:
+                results[route_id] = self._decorate(FacilityResult(
+                    status=FacilityStatus.INVALID_REQUEST,
+                    limitations=["no_route_geometry_supplied"],
+                    error_message=(
+                        "No route geometry was supplied for this route, so the "
+                        "area to search for facilities is unknown."
+                    ),
+                    **base,
+                ))
+                continue
+
+            if raw.status != FacilityStatus.OK:
+                # The shared provider lookup failed: every route keeps the
+                # provider's honest status, never "nothing exists here".
+                result = FacilityResult(
+                    status=raw.status,
+                    provider=raw.provider,
+                    facilities=[],
+                    categories_requested=list(cats),
+                    radius_m=radius,
+                    origin_latitude=reference[1],
+                    origin_longitude=reference[0],
+                    retrieved_at=now,
+                    limitations=list(raw.limitations),
+                    error_message=raw.error_message,
+                )
+                if raw.status == FacilityStatus.UNAVAILABLE:
+                    result.notes.append(
+                        "No facility was found within the searched area. This is the result "
+                        "of one OpenStreetMap lookup at one moment in time — it is not proof "
+                        "that no hospital exists nearby."
+                    )
+                elif raw.error_message:
+                    result.notes.append(
+                        "The facility data could not be retrieved, so no facility is listed. "
+                        "This is a provider failure, not evidence that no hospital exists "
+                        "nearby."
+                    )
+                results[route_id] = self._decorate(result)
+                continue
+
+            kept: List[Facility] = []
+            for facility in raw.facilities:
+                distance, _closest = distance_to_polylines_m(
+                    (facility.longitude, facility.latitude), lines
+                )
+                if distance > radius:
+                    continue
+                kept.append(dataclasses.replace(
+                    facility,
+                    distance_m=distance,
+                    distance_kind=DISTANCE_STRAIGHT_LINE,
+                ))
+            kept.sort(key=lambda f: f.distance_m)
+
+            if not kept:
+                result = FacilityResult(
+                    status=FacilityStatus.UNAVAILABLE,
+                    facilities=[],
+                    limitations=list(raw.limitations) + ["no_facilities_found_within_radius"],
+                    error_message=None,
+                    **base,
+                )
+                result.notes.append(
+                    "No facility was found within the searched area around this route. "
+                    "This is the result of one OpenStreetMap lookup at one moment in time — "
+                    "it is not proof that no hospital exists nearby."
+                )
+                results[route_id] = self._decorate(result)
+                continue
+
+            result = FacilityResult(
+                status=FacilityStatus.OK,
+                facilities=kept,
+                limitations=list(raw.limitations),
+                **base,
+            )
+            result.notes.append(
+                "Distances are straight-line (great-circle) distances from this route; they "
+                "are not road-network distances."
+            )
+            result.notes.append(
+                "Facility names and attributes are "
+                f"{_ATTRIBUTES_NOTE.get(result.provider, OSM_ATTRIBUTES_NOTE)}."
+            )
+            results[route_id] = self._decorate(result)
+
+        # Road access is optional decoration on ONE bounded budget shared by all
+        # routes, so a multi-route lookup cannot multiply public-router traffic.
+        settings = self._road_access_settings()
+        budget = int(settings.get("max_requests", 6))
+        max_seconds = float(settings.get("max_seconds", 20.0))
+        deadline = time.monotonic() + max_seconds if max_seconds > 0 else None
+        eligible = [
+            route_id for route_id in lines_by_id
+            if results[route_id].status == FacilityStatus.OK
+        ]
+        remaining = budget
+        for index, route_id in enumerate(eligible):
+            result = results[route_id]
+            if remaining <= 0:
+                result.road_access_available = False
+                result.road_access_note = (
+                    "Road travel time is unavailable: the shared road-access budget for "
+                    "this multi-route lookup was already spent."
+                )
+                result.limitations = list(result.limitations) + [
+                    "road_access_budget_exhausted"
+                ]
+                continue
+            share = max(1, remaining // max(1, len(eligible) - index))
+            used = self._attach_road_access(
+                result,
+                result.facilities,
+                lines_by_id[route_id],
+                include_road_access,
+                routing_provider,
+                max_requests=share,
+                deadline=deadline,
+            )
+            remaining = max(0, remaining - used)
+
+        for route_id in lines_by_id:
+            results[route_id] = self._decorate(results[route_id])
+
+        statuses = [result.status for result in results.values()]
+        if any(status == FacilityStatus.OK for status in statuses):
+            aggregate = FacilityStatus.OK
+        else:
+            aggregate = statuses[0] if statuses else FacilityStatus.INVALID_REQUEST
+            for candidate in (
+                FacilityStatus.PROVIDER_ERROR,
+                FacilityStatus.PROVIDER_TIMEOUT,
+                FacilityStatus.RATE_LIMITED,
+                FacilityStatus.INVALID_REQUEST,
+                FacilityStatus.UNAVAILABLE,
+            ):
+                if candidate in statuses:
+                    aggregate = candidate
+                    break
+
+        return {
+            "status": aggregate.value,
+            "provider": self.provider.provider_name,
+            "retrieved_at": now,
+            "radius_m": round(float(radius), 1),
+            "categories_requested": list(cats),
+            "routes": {
+                route_id: result.to_dict()
+                for route_id, result in results.items()
+            },
+        }
+
+    # ------------------------------------------------------------------ #
     # Road access (only from a real routing provider response)
     # ------------------------------------------------------------------ #
     def _attach_road_access(
@@ -321,7 +545,15 @@ class FacilitiesService:
         lines: List[List[Tuple[float, float]]],
         include_road_access: bool,
         routing_provider: Any,
-    ) -> None:
+        max_requests: Optional[int] = None,
+        deadline: Optional[float] = None,
+    ) -> int:
+        """Attach road figures to at most ``max_requests`` facilities.
+
+        Returns the number of routing requests actually issued, so a multi-route
+        caller can share one bounded budget across every route instead of
+        multiplying the public-provider traffic by the number of routes.
+        """
         settings = self._road_access_settings()
         if not include_road_access or not settings.get("enabled", True):
             result.road_access_available = False
@@ -329,21 +561,21 @@ class FacilitiesService:
                 "Road travel time is unavailable: road access was not requested for this "
                 "lookup."
             )
-            return
+            return 0
         if routing_provider is None:
             result.road_access_available = False
             result.road_access_note = (
                 "Road travel time is unavailable: no routing provider is available to "
                 "answer a road-access request."
             )
-            return
+            return 0
         if _uses_fabricated_road_data(routing_provider):
             result.road_access_available = False
             result.road_access_note = (
                 "Road travel time is unavailable: the configured routing provider returns "
                 "synthetic data, which is never presented as a real road travel time."
             )
-            return
+            return 0
 
         try:
             from src.routing.schemas import Coordinate, RouteRequest
@@ -351,10 +583,27 @@ class FacilitiesService:
             result.road_access_note = (
                 "Road travel time is unavailable: the routing interface is unavailable."
             )
-            return
+            return 0
 
         per_category = int(settings.get("max_per_category", 1))
-        max_requests = int(settings.get("max_requests", 6))
+        request_budget = (
+            int(settings.get("max_requests", 6))
+            if max_requests is None else max(0, int(max_requests))
+        )
+        if request_budget <= 0:
+            result.road_access_available = False
+            result.road_access_note = (
+                "Road travel time is unavailable: the road-access request budget for this "
+                "lookup is spent."
+            )
+            return 0
+        # PHASE_30: road access is optional decoration on top of the facility
+        # list, so it may never hold the whole response hostage. The public
+        # Overpass lookup already used part of the caller's budget; these
+        # routing requests get their own bounded slice.
+        if deadline is None:
+            max_seconds = float(settings.get("max_seconds", 20.0))
+            deadline = time.monotonic() + max_seconds if max_seconds > 0 else None
         provider_name = str(getattr(routing_provider, "provider_name", "") or "")
 
         nearest_per_category: Dict[str, Facility] = {}
@@ -365,20 +614,27 @@ class FacilitiesService:
             if current is None or facility.distance_m < current.distance_m:
                 nearest_per_category[facility.category] = facility
 
-        targets = sorted(nearest_per_category.values(), key=lambda f: f.distance_m)[:max_requests]
+        targets = sorted(nearest_per_category.values(), key=lambda f: f.distance_m)[:request_budget]
         if not targets:
             result.road_access_available = False
             result.road_access_note = ROAD_TRAVEL_TIME_UNAVAILABLE_NOTE
-            return
+            return 0
 
         updated: Dict[str, Facility] = {}
         failures: List[str] = []
+        used = 0
         for facility in targets:
+            if deadline is not None and time.monotonic() > deadline:
+                # The road-access slice is spent: the remaining facilities are
+                # simply reported without a road figure, never with a guessed one.
+                failures.append(f"{facility.facility_id}: road access budget spent")
+                break
             reference_point = self._nearest_corridor_point(facility, lines)
             if reference_point is None:
                 failures.append(f"{facility.facility_id}: no reference point on the route")
                 continue
             try:
+                used += 1
                 response = routing_provider.get_routes(RouteRequest(
                     origin=Coordinate(latitude=reference_point[1], longitude=reference_point[0]),
                     destination=Coordinate(latitude=facility.latitude, longitude=facility.longitude),
@@ -423,6 +679,7 @@ class FacilitiesService:
                 "Road travel time could not be obtained for every nearby facility; "
                 "the ones without it are shown as unavailable."
             )
+        return used
 
     def _nearest_corridor_point(
         self,

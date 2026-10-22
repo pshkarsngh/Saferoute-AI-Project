@@ -448,5 +448,151 @@ class TestTimeoutAndFallback(unittest.TestCase):
         self.assertEqual(first.disclosures, second.disclosures)
 
 
+class TestPerRouteExplanation(unittest.TestCase):
+    """Every route must get its own grounded explanation (PHASE_30)."""
+
+    def setUp(self):
+        self.svc = GroundedExplanationService(enabled=False)
+        self.route = {
+            "route_id": "rt-osrm-abcd-00",
+            "route_score": 79.24,
+            "status": "assessed",
+            "evidence_class": "stale",
+            "assessed_length_fraction": 1.0,
+            "coverage": {"images_total": 248, "images_used": 248, "fraction": 1.0},
+            "hazards": (
+                [{"hazard_class": "pothole"}] * 23
+                + [{"hazard_class": "crack"}] * 19
+            ),
+            "limitations": ["Stale imagery contributed to the score."],
+        }
+        self.context = {
+            "analysis_id": "an-test",
+            "model_version": "saferoute-yolo11-v1",
+            "status": "assessed",
+            "limitations": [],
+            "comparison": {
+                "recommended_route_id": None,
+                "recommendation_status": "cannot_determine",
+                "comparability": "no_sufficiently_assessed_route",
+                "cannot_determine_reason": "every scored route relied on stale imagery.",
+                "ranking": [
+                    {"route_id": "rt-osrm-abcd-00", "route_score": 79.24},
+                    {"route_id": "rt-osrm-abcd-01", "route_score": 81.0},
+                ],
+            },
+        }
+
+    def test_fallback_describes_only_this_route(self):
+        res = self.svc.explain_route(self.route, context=self.context)
+        self.assertEqual(res.source, "fallback")
+        self.assertIn("rt-osrm-abcd-00", res.explanation)
+        self.assertIn("79.24", res.explanation)
+        self.assertIn("42", res.explanation)
+        self.assertIn("pothole", res.explanation)
+        self.assertIn("crack", res.explanation)
+        # It must never name another route's identifier.
+        self.assertNotIn("rt-osrm-abcd-01", res.explanation)
+        self.assertEqual(res.referenced_routes, ["rt-osrm-abcd-00"])
+        self.assertEqual(res.referenced_hazards, ["crack", "pothole"])
+
+    def test_fallback_discloses_the_evidence_gap(self):
+        res = self.svc.explain_route(self.route, context=self.context)
+        self.assertIn("evidence_class_stale", res.disclosures)
+        self.assertIn("no_route_recommended", res.disclosures)
+        self.assertIn("not proof that a road is safe", res.explanation)
+
+    def test_unassessed_route_is_not_described_as_safe(self):
+        route = {
+            "route_id": "rt-osrm-abcd-02",
+            "route_score": None,
+            "status": "unassessed",
+            "coverage": {"images_total": 0, "images_used": 0, "fraction": 0.0},
+            "hazards": [],
+        }
+        res = self.svc.explain_route(route, context=self.context)
+        self.assertEqual(res.source, "fallback")
+        self.assertIn("could not be assessed", res.explanation)
+        self.assertIn("not evidence that the road is safe", res.explanation)
+        self.assertIn("route_not_assessed", res.disclosures)
+        self.assertNotIn("out of 100", res.explanation)
+
+    def test_each_route_gets_a_distinct_explanation(self):
+        other = {
+            "route_id": "rt-val-abcd-00",
+            "route_score": 61.5,
+            "status": "assessed",
+            "evidence_class": "real",
+            "assessed_length_fraction": 1.0,
+            "coverage": {"images_total": 120, "images_used": 120, "fraction": 1.0},
+            "hazards": [{"hazard_class": "pothole"}] * 3,
+            "limitations": [],
+        }
+        first = self.svc.explain_route(self.route, context=self.context)
+        second = self.svc.explain_route(other, context=self.context)
+        self.assertNotEqual(first.explanation, second.explanation)
+        self.assertIn("rt-val-abcd-00", second.explanation)
+        self.assertNotIn("rt-osrm-abcd-00", second.explanation)
+
+    def test_route_scoped_safety_claim_is_rejected(self):
+        """A live reply that calls this route safe must fall back (Rule 9)."""
+        svc = GroundedExplanationService(enabled=False)
+        payload = svc._route_payload(self.route, self.context)
+        raw = _reply(
+            "Route rt-osrm-abcd-00 scored 79.24 out of 100, indicating a potentially "
+            "safe route."
+        )
+        self.assertIsNone(svc._parse_and_ground(raw, payload))
+
+    def test_scoped_safety_claim_allowed_only_for_the_recommended_route(self):
+        context = {
+            "analysis_id": "an-test",
+            "comparison": {
+                "recommended_route_id": "rt-osrm-abcd-01",
+                "recommendation_status": "recommended",
+                "comparability": "sufficiently_assessed_comparison",
+                "ranking": [{"route_id": "rt-osrm-abcd-00", "route_score": 79.24}],
+            },
+        }
+        svc = GroundedExplanationService(enabled=False)
+        payload = svc._route_payload(self.route, context)
+        self.assertIsNone(
+            svc._parse_and_ground(
+                _reply("Route rt-osrm-abcd-00 scored 79.24 out of 100, so it is a safe route."),
+                payload,
+            )
+        )
+
+
+class TestComparativeClaimScoping(unittest.TestCase):
+    """A comparative clause refers to another route, not to the named one."""
+
+    def setUp(self):
+        self.svc = GroundedExplanationService(enabled=False)
+        self.payload = _payload_with_comparison()
+
+    def _accepts(self, text, payload=None):
+        raw = _reply(text)
+        return self.svc._parse_and_ground(raw, payload or self.payload) is not None
+
+    def test_non_comparative_clause_ending_in_route_is_attributed(self):
+        # "…, indicating a potentially safe route." describes route_b, so the
+        # unsupported safety claim must be caught (Rule 9).
+        self.assertFalse(
+            self._accepts(
+                "Route route_b scored 60 out of 100, indicating a potentially safe route."
+            )
+        )
+
+    def test_comparative_clause_is_not_attributed_to_the_named_route(self):
+        # "lower than the recommended route" refers to route_a, which IS the
+        # recommended route, so this is grounded.
+        self.assertTrue(
+            self._accepts(
+                "Route route_a scored 82.5 out of 100, higher than the recommended route."
+            )
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,7 @@ All structured calculations happen here/backend-side. The risk engine owns score
 
 import dataclasses
 import os
+import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -92,6 +93,19 @@ class SafetyAnalysisPipeline:
                 imagery_workers = 16
         self.imagery_workers = max(1, int(imagery_workers))
 
+        # PHASE_31: the per-request detection memo (PHASE_27) is complemented by
+        # a process-wide memo keyed on the IMAGE FILE IDENTITY (path, size,
+        # mtime), the detector version and its inference parameters. Repeating an
+        # analysis of the same corridor therefore does not re-run YOLO on frames
+        # it has already inferred: identical bytes + identical weights/params
+        # produce identical detections by construction. A key that cannot be
+        # verified (missing file, changed file, changed config) always falls
+        # through to a real inference, so this can never invent evidence
+        # (Rules 7, 9, 10).
+        self.DETECTION_MEMO_MAX_ENTRIES = 4096
+        self._detection_memo: Dict[tuple, Any] = {}
+        self._detection_memo_lock = threading.Lock()
+
         # PHASE_22 guard: fail loudly if detector/aggregator confidence thresholds
         # diverge (would silently discard detections). Only checked when using the
         # real configs (not when a custom aggregator/engine is injected).
@@ -123,6 +137,9 @@ class SafetyAnalysisPipeline:
             "origin": origin.to_dict(),
             "destination": destination.to_dict(),
             "provider": resp.provider,
+            # PHASE_30: every routing provider that actually contributed a
+            # route to this analysis (e.g. "osrm" and "valhalla").
+            "providers": list(resp.providers),
             "model_version": self.model_version,
             "config_hash": self.config_hash,
             "routes": [],
@@ -138,6 +155,7 @@ class SafetyAnalysisPipeline:
                 record["limitations"].append(resp.error_message)
             t0 = time.perf_counter()
             record["explanation"] = self.explainer.explain(record).to_dict()
+            record["route_explanations"] = {}
             timings = {
                 "routing_ms": round(routing_ms, 1),
                 "explanation_ms": round((time.perf_counter() - t0) * 1000.0, 1),
@@ -175,9 +193,13 @@ class SafetyAnalysisPipeline:
         comparison_ms = (time.perf_counter() - t0) * 1000.0
         record["recommendation"] = record["comparison"]["recommended_route_id"]
         record["status"] = self._overall_status(record["routes"])
-        t0 = time.perf_counter()
-        record["explanation"] = self.explainer.explain(record).to_dict()
-        explanation_ms = (time.perf_counter() - t0) * 1000.0
+        # PHASE_31: the analysis-level explanation and the per-route explanations
+        # are independent jobs over the same verified record, so they are issued
+        # together instead of one after the other. Each job still runs the same
+        # grounded call and the same validation; only the schedule changed, so a
+        # route's text can never depend on another job's outcome (Rules 7, 9, 12).
+        (record["explanation"], record["route_explanations"],
+         explanation_ms, route_explanations_ms) = self._build_explanations(record)
 
         # PHASE_27 observability: additive per-stage wall-clock breakdown so the
         # dominant cost is measurable from a real response. Scores, evidence and
@@ -191,9 +213,93 @@ class SafetyAnalysisPipeline:
             "risk_scoring_ms": round(scoring_ms, 1),
             "comparison_ms": round(comparison_ms, 1),
             "explanation_ms": round(explanation_ms, 1),
+            "route_explanations_ms": round(route_explanations_ms, 1),
             "total_ms": round((time.perf_counter() - t_total) * 1000.0, 1),
         }
         return record
+
+    def _build_explanations(self, record: Dict[str, Any]):
+        """Produce the analysis-level and per-route explanations concurrently.
+
+        Returns ``(explanation, route_explanations, explanation_ms,
+        route_explanations_ms)`` where each duration is the wall time of that
+        job itself. The two jobs share no mutable state: ``explain`` owns the
+        analysis-level diagnostics and ``explain_route`` never touches them, so
+        running them together cannot change either result (Rules 7, 12).
+        """
+
+        def _analysis_job():
+            start = time.perf_counter()
+            result = self.explainer.explain(record).to_dict()
+            return result, (time.perf_counter() - start) * 1000.0
+
+        def _routes_job():
+            start = time.perf_counter()
+            result = self._build_route_explanations(record)
+            return result, (time.perf_counter() - start) * 1000.0
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            analysis_future = pool.submit(_analysis_job)
+            routes_future = pool.submit(_routes_job)
+            explanation, explanation_ms = analysis_future.result()
+            route_explanations, route_explanations_ms = routes_future.result()
+        return explanation, route_explanations, explanation_ms, route_explanations_ms
+
+    def _build_route_explanations(self, record: Dict[str, Any]) -> Dict[str, Any]:
+        """Return one grounded explanation per analysed route (PHASE_30).
+
+        The explanations are produced from the SAME verified route records the
+        risk engine scored, so they can never claim a score, hazard or evidence
+        the backend did not produce (Rules 7, 12). Each route is explained
+        independently and concurrently — one route's explanation never depends
+        on another route's — so a slow local model cannot reorder or alter the
+        assessed routes (Rule 10).
+        """
+        routes = list(record.get("routes") or [])
+        if not routes:
+            return {}
+
+        context: Dict[str, Any] = {
+            "analysis_id": record.get("analysis_id"),
+            "model_version": record.get("model_version"),
+            "config_hash": record.get("config_hash"),
+            "status": record.get("status"),
+            "created_at": record.get("created_at"),
+            "limitations": list(record.get("limitations") or []),
+            "comparison": record.get("comparison") or {},
+        }
+
+        def _explain_one(route: Dict[str, Any]):
+            try:
+                return self.explainer.explain_route(route, context=context)
+            except Exception:  # noqa: BLE001 - a route never breaks the analysis
+                return None
+
+        if len(routes) > 1:
+            with ThreadPoolExecutor(max_workers=min(4, len(routes))) as pool:
+                results = list(pool.map(_explain_one, routes))
+        else:
+            results = [_explain_one(routes[0])]
+
+        explanations: Dict[str, Any] = {}
+        for route, result in zip(routes, results):
+            route_id = route.get("route_id")
+            if not route_id:
+                continue
+            if result is not None:
+                explanations[route_id] = result.to_dict()
+            else:
+                explanations[route_id] = {
+                    "analysis_id": str(record.get("analysis_id", "")),
+                    "explanation": (
+                        "The backend could not produce an explanation for this route."
+                    ),
+                    "referenced_routes": [route_id],
+                    "referenced_hazards": [],
+                    "disclosures": ["explanation_unavailable"],
+                    "source": "unavailable",
+                }
+        return explanations
 
     def _prefetch_segment_imagery(self, segments) -> List[Any]:
         """Retrieve imagery for every segment, preserving segment order.
@@ -230,6 +336,64 @@ class SafetyAnalysisPipeline:
             raise errors[min(errors)]
         return results
 
+    def _detection_memo_key(self, detector, file_path: str, image_id) -> Optional[tuple]:
+        """Identity a cached inference may be reused for, or None to skip the memo.
+
+        The file's size and nanosecond mtime identify the exact bytes that were
+        inferred (a rewritten/replaced JPEG always produces a new key), and the
+        detector version + inference parameters identify the exact model
+        configuration. Nothing that could change a detection is omitted, so a
+        hit is evidence-equivalent to re-running inference (Rules 7, 9).
+        """
+        try:
+            stat = os.stat(file_path)
+        except (OSError, TypeError, ValueError):
+            return None
+        return (
+            str(file_path),
+            int(stat.st_size),
+            int(stat.st_mtime_ns),
+            str(image_id),
+            type(detector).__name__,
+            str(getattr(detector, "model_version", "")),
+            getattr(detector, "imgsz", None),
+            getattr(detector, "conf_threshold", None),
+            getattr(detector, "iou_threshold", getattr(detector, "iou", None)),
+            getattr(detector, "max_det", None),
+            getattr(detector, "augment", None),
+            getattr(detector, "batch", None),
+            str(getattr(detector, "checkpoint_path", "")),
+            str(getattr(detector, "device", None)),
+        )
+
+    def _detect_with_memo(self, detector, img, route_id: str, segment_id: str):
+        """Infer one image, reusing an identical prior inference when possible.
+
+        Results are copied out of the memo so a caller can never mutate the
+        cached record (the pipeline re-stamps route/segment identifiers on the
+        copy). A miss always runs the real detector.
+        """
+        key = self._detection_memo_key(detector, str(img.file_path), img.image_id)
+        if key is not None:
+            with self._detection_memo_lock:
+                cached = self._detection_memo.get(key)
+            if cached is not None:
+                return dataclasses.replace(cached, detections=list(cached.detections))
+
+        result = detector.detect(
+            img.file_path, image_id=img.image_id,
+            route_id=route_id, segment_id=segment_id)
+
+        if key is not None:
+            with self._detection_memo_lock:
+                if len(self._detection_memo) >= self.DETECTION_MEMO_MAX_ENTRIES:
+                    # FIFO eviction: the oldest key is the least likely to be
+                    # reused for the corridor currently being analysed.
+                    self._detection_memo.pop(next(iter(self._detection_memo)), None)
+                self._detection_memo[key] = dataclasses.replace(
+                    result, detections=list(result.detections))
+        return result
+
     def _analyze_route(self, route, imagery_by_index=None, detection_cache=None) -> Dict[str, Any]:
         segment_assessments = []
         lengths: List[float] = []
@@ -255,9 +419,7 @@ class SafetyAnalysisPipeline:
                     cache_key = (str(img.file_path), img.image_id)
                     cached = detection_cache.get(cache_key)
                     if cached is None:
-                        cached = detector.detect(
-                            img.file_path, image_id=img.image_id,
-                            route_id=route.route_id, segment_id=seg.segment_id)
+                        cached = self._detect_with_memo(detector, img, route.route_id, seg.segment_id)
                         detection_cache[cache_key] = cached
                     image_results.append(
                         _restamp_detection_result(cached, route.route_id, seg.segment_id))
@@ -292,6 +454,16 @@ class SafetyAnalysisPipeline:
         result["geometry"] = route.geometry.to_dict()
         result["segments"] = [s.to_dict() for s in route.segments]
         result["hazards"] = hazard_records
+        # PHASE_30: per-class hazard counts, derived from the SAME detection
+        # records the risk engine scored. Purely additive bookkeeping — it
+        # never changes a score (Rule 7) and never invents a detection.
+        hazard_counts: Dict[str, int] = {}
+        for hazard in hazard_records:
+            hazard_class = hazard.get("hazard_class")
+            if not isinstance(hazard_class, str) or not hazard_class:
+                continue
+            hazard_counts[hazard_class] = hazard_counts.get(hazard_class, 0) + 1
+        result["hazard_counts"] = hazard_counts
         result["imagery"] = imagery_meta
         result["timings_ms"] = {
             "detection_ms": round(detection_ms, 1),

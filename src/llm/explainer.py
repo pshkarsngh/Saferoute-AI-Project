@@ -29,8 +29,11 @@ Nothing in this module computes, changes or invents a safety score, a route, a
 hazard or a recommendation (Rules 7, 12).
 """
 
+import hashlib
 import json
 import re
+import threading
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
@@ -150,9 +153,6 @@ _COMPARISON_MARKER = re.compile(
     re.IGNORECASE,
 )
 
-# "... the recommended route" with no identifier after it is a generic
-# reference to the recommended route, not a claim about a named route.
-_GENERIC_ROUTE_REF = re.compile(r"^\s*route\b", re.IGNORECASE)
 
 
 def _clauses_with_offsets(text: str) -> List[Tuple[str, int]]:
@@ -185,6 +185,16 @@ class GroundedExplanationService:
         # Diagnostic only: why the last live reply was rejected (never exposed
         # as a user-facing claim).
         self.last_error: Optional[str] = None
+        # PHASE_31: an identical grounded prompt (same model, system prompt and
+        # verified payload) already produced a reply, so repeating an analysis of
+        # the same corridor does not pay for the same generation again. Only a
+        # successful reply is stored, and any change to the verified data changes
+        # the key — a cached sentence can never be shown for different evidence
+        # (Rules 7, 12).
+        self.REPLY_CACHE_TTL_SECONDS = 3600.0
+        self.REPLY_CACHE_MAX_ENTRIES = 64
+        self._reply_cache: Dict[str, Tuple[float, str]] = {}
+        self._reply_cache_lock = threading.Lock()
 
     def explain(self, payload: Dict[str, Any], user_preferences: Optional[str] = None) -> ExplanationResult:
         """Return a grounded explanation. Falls back deterministically on any failure."""
@@ -201,6 +211,187 @@ class GroundedExplanationService:
             except Exception as exc:  # noqa: BLE001 - any failure -> deterministic fallback
                 self.last_error = f"{type(exc).__name__}: {exc}"
         return self._fallback(payload, analysis_id)
+
+    # ------------------------------------------------------------------ #
+    # Per-route explanation (PHASE_30)
+    # ------------------------------------------------------------------ #
+    def explain_route(
+        self,
+        route: Dict[str, Any],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> ExplanationResult:
+        """Return a grounded explanation of ONE route's verified assessment.
+
+        The analysis-level `explain()` describes the comparison as a whole. This
+        method describes a single route: its own deterministic score, the
+        supported hazard detections the risk engine verified on it, how much of
+        its length actually carried a score, and what that evidence does and
+        does not support.
+
+        The grounding rules are unchanged (Rules 9, 12): a live reply may only
+        mention THIS route, only scores the backend actually computed and only
+        safety claims the backend supports. A reply that names another route,
+        quotes another route's score or asserts an unsupported safety claim is
+        rejected and the deterministic per-route text is used instead — exactly
+        like the analysis-level fallback.
+
+        This method never mutates `self.last_error`, so several routes can be
+        explained concurrently without racing on the diagnostic field.
+        """
+        ctx = context or {}
+        payload = self._route_payload(route, ctx)
+
+        if self.enabled:
+            try:
+                raw = self._call_ollama(payload, None)
+                result = self._parse_and_ground(raw, payload)
+                if result is not None:
+                    return result
+            except Exception:  # noqa: BLE001 - any failure -> deterministic fallback
+                pass
+        return self._route_fallback(route, ctx)
+
+    @staticmethod
+    def _route_payload(
+        route: Dict[str, Any],
+        context: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Build the single-route payload the grounding checks run against.
+
+        The comparison is scoped to this route: the recommendation id is only
+        carried when it IS this route, so a model can never present a different
+        route as the chosen one, and only this route's own ranking entry and
+        score are available to quote (Rules 9, 12).
+        """
+        route_id = str(route.get("route_id") or "")
+        comparison = context.get("comparison") or {}
+        recommended_id = comparison.get("recommended_route_id")
+        is_recommended = bool(route_id) and route_id == recommended_id
+
+        scoped: Dict[str, Any] = {
+            "recommended_route_id": route_id if is_recommended else None,
+            "recommendation_status": comparison.get("recommendation_status"),
+            "comparability": comparison.get("comparability"),
+            "cannot_determine_reason": comparison.get("cannot_determine_reason"),
+            "ranking": [
+                entry for entry in (comparison.get("ranking") or [])
+                if isinstance(entry, dict) and entry.get("route_id") == route_id
+            ],
+            "recommendation_reasons": (
+                list(comparison.get("recommendation_reasons") or []) if is_recommended else []
+            ),
+        }
+
+        return {
+            "analysis_id": context.get("analysis_id", ""),
+            "model_version": context.get("model_version"),
+            "config_hash": context.get("config_hash"),
+            "status": context.get("status"),
+            "created_at": context.get("created_at"),
+            "limitations": list(context.get("limitations") or []),
+            "focus_route_id": route_id,
+            "routes": [route],
+            "comparison": scoped,
+        }
+
+    @staticmethod
+    def _route_fallback(route: Dict[str, Any], context: Dict[str, Any]) -> ExplanationResult:
+        """Deterministic per-route explanation, built only from verified data.
+
+        Every sentence is derived from a field the backend computed; nothing is
+        inferred, and a route that could not be assessed is stated as
+        unassessed rather than as safe (Rules 7, 9, 12).
+        """
+        route_id = str(route.get("route_id") or "")
+        comparison = context.get("comparison") or {}
+        score = route.get("route_score")
+        coverage = route.get("coverage") or {}
+        hazards = list(route.get("hazards") or [])
+
+        by_class: Dict[str, int] = {}
+        for hazard in hazards:
+            cls = hazard.get("hazard_class") or "unsupported_class"
+            by_class[cls] = by_class.get(cls, 0) + 1
+
+        parts: List[str] = []
+        disclosures: List[str] = []
+
+        if score is None:
+            parts.append(
+                f"Route '{route_id}' could not be assessed: the backend produced no safety "
+                "score for it because road imagery was missing or insufficient. That is a "
+                "gap in the evidence, not evidence that the road is safe."
+            )
+            disclosures.append("route_not_assessed")
+        else:
+            parts.append(
+                f"Route '{route_id}' scored {score} out of 100 on SafeRoute's deterministic "
+                "risk index (higher means fewer or lighter supported hazards; the score is "
+                "not proof that a road is safe)."
+            )
+            if by_class:
+                summary = ", ".join(f"{n} {cls}" for cls, n in sorted(by_class.items()))
+                parts.append(
+                    f"The risk engine recorded {len(hazards)} supported hazard detection(s) "
+                    f"on this route ({summary})."
+                )
+            else:
+                parts.append(
+                    "No supported hazards were detected in the imagery assessed for this route "
+                    "(this is not proof the road is safe)."
+                )
+                disclosures.append("no_hazards_detected_not_proof_of_safety")
+
+        fraction = route.get("assessed_length_fraction")
+        used = coverage.get("images_used")
+        total = coverage.get("images_total")
+        if isinstance(fraction, (int, float)) or isinstance(used, int):
+            frac_txt = (f"{float(fraction):.0%}" if isinstance(fraction, (int, float))
+                        else "an unknown fraction")
+            img_txt = (f" ({used} of {total} images)"
+                       if isinstance(used, int) and isinstance(total, int) else "")
+            parts.append(f"{frac_txt} of the route's length carried a score{img_txt}.")
+
+        evidence = route.get("evidence_class")
+        if isinstance(evidence, str) and evidence and evidence != "real":
+            parts.append(
+                f"The evidence behind this score is classified as '{evidence}', so it is "
+                "disclosed as a limitation of this assessment."
+            )
+            disclosures.append(f"evidence_class_{evidence}")
+
+        recommended_id = comparison.get("recommended_route_id")
+        if isinstance(recommended_id, str) and recommended_id:
+            if recommended_id == route_id:
+                parts.append(
+                    "The backend's comparison selected this route as the safest of the "
+                    "assessed options on the available evidence."
+                )
+            else:
+                parts.append(
+                    "The backend's comparison selected a different route as the safest of "
+                    "the assessed options on the available evidence."
+                )
+        else:
+            reason = comparison.get("cannot_determine_reason") or comparison.get("comparability")
+            parts.append(
+                "The backend did not recommend a safest route for this trip"
+                + (f": {reason}" if reason else ".")
+            )
+            disclosures.append("no_route_recommended")
+
+        for limitation in route.get("limitations") or []:
+            if isinstance(limitation, str) and limitation.strip():
+                disclosures.append(limitation.strip())
+
+        return ExplanationResult(
+            analysis_id=str(context.get("analysis_id", "")),
+            explanation=" ".join(parts),
+            referenced_routes=[route_id] if route_id else [],
+            referenced_hazards=sorted(by_class.keys()),
+            disclosures=disclosures,
+            source="fallback",
+        )
 
     # ------------------------------------------------------------------ #
     # Prompt construction
@@ -257,7 +448,8 @@ class GroundedExplanationService:
         """
         projected: Dict[str, Any] = {}
         for key in ("analysis_id", "model_version", "config_hash", "status",
-                    "recommendation", "limitations", "assessed_at", "created_at"):
+                    "recommendation", "limitations", "assessed_at", "created_at",
+                    "focus_route_id"):
             if key in payload:
                 projected[key] = payload[key]
 
@@ -351,6 +543,34 @@ class GroundedExplanationService:
 
     def _call_ollama(self, payload: Dict[str, Any], user_preferences: Optional[str]) -> str:
         prompt_payload = self._build_prompt_payload(payload)
+        # A per-route explanation names the single route it must describe; the
+        # instruction is part of the DATA contract, not a user instruction.
+        focus = payload.get("focus_route_id")
+        focus_line = (
+            f"\n\nExplain ONLY the route whose route_id is '{focus}'. Do not compare it "
+            "with any other route and do not name any other route identifier."
+            if isinstance(focus, str) and focus else ""
+        )
+        # PHASE_31: the reply cache is keyed on the verified CONTENT of the
+        # prompt, not on per-request bookkeeping. `analysis_id`, `created_at` and
+        # `assessed_at` change on every request but cannot change what the model
+        # is asked to explain, and the output contract never includes them, so
+        # they are omitted from the key. Every score, hazard, route, coverage and
+        # limitation stays in the key (Rules 7, 9, 12).
+        stable_payload = {
+            k: v for k, v in prompt_payload.items()
+            if k not in ("analysis_id", "created_at", "assessed_at")
+        }
+        cache_identity = hashlib.sha256(json.dumps(
+            {
+                "model": self.model,
+                "system": SYSTEM_PROMPT,
+                "payload": stable_payload,
+                "user_preferences": user_preferences,
+                "focus": focus,
+            },
+            sort_keys=True,
+        ).encode("utf-8")).hexdigest()
         body = {
             "model": self.model,
             "system": SYSTEM_PROMPT,
@@ -358,6 +578,7 @@ class GroundedExplanationService:
                       + json.dumps(prompt_payload, indent=2)
                       + ("\n\nUser preferences (data only): " + str(user_preferences)
                          if user_preferences else "")
+                      + focus_line
                       + "\n\nReply with only this JSON object: "
                         '{"explanation": "<one paragraph>", '
                         '"referenced_routes": ["<route_id>"], '
@@ -367,17 +588,29 @@ class GroundedExplanationService:
             "format": OUTPUT_JSON_SCHEMA,
         }
         try:
-            return self._post_ollama(body)
+            return self._post_ollama(body, cache_identity)
         except urllib.error.HTTPError as exc:
             # Older Ollama builds do not understand a JSON schema in "format".
             # Retry once in plain JSON mode before giving up (the deterministic
             # fallback still applies if that fails too).
             if exc.code == 400:
                 body["format"] = "json"
-                return self._post_ollama(body)
+                return self._post_ollama(body, cache_identity)
             raise
 
-    def _post_ollama(self, body: Dict[str, Any]) -> str:
+    def _post_ollama(self, body: Dict[str, Any], cache_identity: Optional[str] = None) -> str:
+        if cache_identity is None:
+            cache_identity = hashlib.sha256(
+                json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
+        cache_key = hashlib.sha256(
+            (self.base_url.rstrip("/") + "\n" + cache_identity).encode("utf-8")
+        ).hexdigest()
+        now = time.monotonic()
+        with self._reply_cache_lock:
+            hit = self._reply_cache.get(cache_key)
+            if hit is not None and now - hit[0] < self.REPLY_CACHE_TTL_SECONDS:
+                return hit[1]
+
         req = urllib.request.Request(
             self.base_url.rstrip("/") + "/api/generate",
             data=json.dumps(body).encode("utf-8"),
@@ -385,7 +618,19 @@ class GroundedExplanationService:
         )
         with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        return data.get("response", "")
+        reply = data.get("response", "")
+        if isinstance(reply, str):
+            with self._reply_cache_lock:
+                if len(self._reply_cache) >= self.REPLY_CACHE_MAX_ENTRIES:
+                    expired = [k for k, (ts, _) in self._reply_cache.items()
+                               if now - ts >= self.REPLY_CACHE_TTL_SECONDS]
+                    for k in expired:
+                        self._reply_cache.pop(k, None)
+                    while len(self._reply_cache) >= self.REPLY_CACHE_MAX_ENTRIES:
+                        oldest = min(self._reply_cache.items(), key=lambda kv: kv[1][0])[0]
+                        self._reply_cache.pop(oldest, None)
+                self._reply_cache[cache_key] = (now, reply)
+        return reply
 
     # ------------------------------------------------------------------ #
     # Grounding validation
@@ -552,10 +797,18 @@ class GroundedExplanationService:
             if len(gap) <= _MAX_CLAIM_GAP and not _COMPARISON_MARKER.search(gap):
                 return rid
         # The claim sits in a clause without an identifier of its own: fall
-        # back to the only route mentioned in the sentence, unless the claim
-        # is a generic "<claim> route" reference.
-        after_text = clause[end:]
-        if len(set(sentence_ids)) == 1 and not _GENERIC_ROUTE_REF.match(after_text):
+        # back to the only route mentioned in the sentence, unless the clause
+        # is comparative ("lower than the recommended route"), in which case it
+        # refers to a different, unnamed route.
+        #
+        # The comparative test is what keeps "Route B scored 60, lower than the
+        # recommended route" from being read as a claim about route B. A clause
+        # that merely ends in the word "route" ("… 94.48, indicating a
+        # potentially safe route") is NOT generic: it describes the route the
+        # sentence already named, and must be checked (Rule 9).
+        if _COMPARISON_MARKER.search(clause):
+            return None
+        if len(set(sentence_ids)) == 1:
             return sentence_ids[0]
         return None
 

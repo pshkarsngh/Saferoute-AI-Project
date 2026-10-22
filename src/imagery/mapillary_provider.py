@@ -21,9 +21,12 @@ from __future__ import annotations
 
 import json
 import math
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -132,6 +135,22 @@ class MapillaryImageryProvider(ImageryProvider):
         # thumb_1024_url / thumb_2048_url are the commonly exposed variants.
         self.thumb_field = f"thumb_{self.thumbnail_width}_url"
 
+        # PHASE_31: identical segment bboxes are queried again by later analyses
+        # of the same corridor (and by alternative routes sharing a road).
+        # Mapillary frames are historical captures, not live traffic, so the
+        # resolved candidate set for an identical query is reused for a bounded
+        # window. Only successful responses are cached (a provider failure is
+        # never masked, Rule 20), and the key covers every parameter that can
+        # change the result. The access token is fingerprinted, never stored.
+        self.SEARCH_CACHE_TTL_SECONDS = 3600.0
+        self.SEARCH_CACHE_MAX_ENTRIES = 512
+        self._search_cache: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
+        self._search_cache_lock = threading.Lock()
+        self._token_tag = (
+            hashlib.sha256(self.token.encode("utf-8")).hexdigest()[:12]
+            if self.token else "no-token"
+        )
+
     @property
     def provider_name(self) -> str:
         return "mapillary"
@@ -171,6 +190,41 @@ class MapillaryImageryProvider(ImageryProvider):
                              licence=self.licence, limitations=list(lim))
 
     # ------------------------------------------------------------------ #
+    def _search_candidates(self, bbox: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Return the Mapillary candidate list for ``bbox``, reusing a fresh hit.
+
+        The cache key covers the endpoint, fields, limit, radius, token identity
+        and bbox, i.e. everything that determines the query result. A miss runs
+        the real request and caches only a successful response.
+        """
+        key = "|".join([
+            self.base_url, self.thumb_field, str(self.candidate_limit),
+            f"{self.radius_m:.3f}", self._token_tag, bbox,
+        ])
+        now = time.monotonic()
+        with self._search_cache_lock:
+            hit = self._search_cache.get(key)
+            if hit is not None and now - hit[0] < self.SEARCH_CACHE_TTL_SECONDS:
+                return hit[1]
+
+        payload = self.http.get_json(f"{self.base_url}/images", params)
+        items = payload.get("data", []) if isinstance(payload, dict) else []
+        if not isinstance(items, list):
+            items = []
+
+        with self._search_cache_lock:
+            if len(self._search_cache) >= self.SEARCH_CACHE_MAX_ENTRIES:
+                expired = [k for k, (ts, _) in self._search_cache.items()
+                           if now - ts >= self.SEARCH_CACHE_TTL_SECONDS]
+                for k in expired:
+                    self._search_cache.pop(k, None)
+                while len(self._search_cache) >= self.SEARCH_CACHE_MAX_ENTRIES:
+                    oldest = min(self._search_cache.items(), key=lambda kv: kv[1][0])[0]
+                    self._search_cache.pop(oldest, None)
+            self._search_cache[key] = (now, items)
+        return items
+
+    # ------------------------------------------------------------------ #
     def get_imagery_for_segment(
         self,
         segment: RouteSegment,
@@ -204,7 +258,7 @@ class MapillaryImageryProvider(ImageryProvider):
         }
 
         try:
-            payload = self.http.get_json(f"{self.base_url}/images", params)
+            items = self._search_candidates(bbox, params)
         except urllib.error.HTTPError as e:
             if e.code in (401, 403):
                 # PHASE_23B: authentication failure must NEVER silently substitute
@@ -230,7 +284,6 @@ class MapillaryImageryProvider(ImageryProvider):
                 self._redact(f"Mapillary request failed: {type(e).__name__}: {e}"),
                 ["mapillary_provider_error"])
 
-        items = payload.get("data", []) if isinstance(payload, dict) else []
         ranked: List[Tuple[Dict[str, Any], float]] = []
         for item in items:
             geom = item.get("geometry") or {}

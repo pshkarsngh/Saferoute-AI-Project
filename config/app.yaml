@@ -7,8 +7,10 @@
 # the system is never left unusable.
 
 app:
-  # Routing: OSRM (keyless OpenStreetMap) with automatic mock fallback.
-  routing_provider: "osrm"            # osrm | mock
+  # Routing: composed live providers (OSRM + Valhalla, both keyless
+  # OpenStreetMap) with automatic mock fallback. Only the routes a provider
+  # actually returned are ever displayed (Rule 10).
+  routing_provider: "multi"           # multi | osrm | valhalla | mock
 
   # Facilities: Overpass (keyless OpenStreetMap). Context only (Rule 11).
   facilities_provider: "overpass"     # overpass | mock
