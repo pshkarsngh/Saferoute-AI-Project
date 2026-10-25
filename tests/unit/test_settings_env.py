@@ -29,6 +29,9 @@ class TestEnvAndSettings(unittest.TestCase):
             self.assertEqual(s.routing_provider, "mock")
             self.assertEqual(s.port, 8123)
             self.assertEqual(s.facilities_provider, "mock")
+            self.assertEqual(s.long_route_threshold_m, 100000.0)
+            self.assertEqual(s.long_route_max_segments, 400)
+            self.assertEqual(s.long_route_max_images_per_segment, 1)
             self.assertNotIn("mapillary_token", s.to_safe_dict())
             self.assertIn("mapillary_token_present", s.to_safe_dict())
         finally:

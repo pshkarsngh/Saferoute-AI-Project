@@ -52,6 +52,10 @@ Status values: `assessed | partially_assessed | unassessed | failed`.
 
 - Missing/insufficient imagery → segment `unassessed`, never scored as safe (Rule 9).
 - Unassessed routes are **never** ranked or recommended (Rule 9).
+- Routes over 100 km use a bounded, evenly-spaced evidence sample and at most one
+  frame per assessed segment (config: `app.imagery.long_route`). Skipped segments
+  remain explicitly `unassessed` in the coverage denominator and are disclosed in
+  the route's `limitations` / `long_route` record; they are never treated as safe.
 - Fewer than four routes are returned as-is (Rule 10).
 
 ## 4. Persistence

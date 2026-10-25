@@ -30,9 +30,15 @@ class ImageryProvider(ABC):
         self,
         segment: RouteSegment,
         permitted_source: Optional[str] = None,
+        max_images: Optional[int] = None,
     ) -> ImageryResult:
         """Fetch permitted road imagery matching the route segment.
-        
+
+        ``max_images`` is an optional per-call cap. Providers that can enforce it
+        before downloading should set ``supports_max_images = True`` and honour
+        it; callers must still treat the returned ``images`` list as potentially
+        longer and must not assume more evidence than was requested.
+
         Returns:
             ImageryResult with ImageRef objects if available, or explicit
             ImageryUnavailable detail if missing, stale, inaccessible, or disallowed.

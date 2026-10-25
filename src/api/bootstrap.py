@@ -89,6 +89,9 @@ def build_pipeline(settings: Optional[Settings] = None) -> SafetyAnalysisPipelin
         imagery_adapter=imagery,
         facilities_service=facilities,
         explainer=explainer,
+        long_route_threshold_m=settings.long_route_threshold_m,
+        long_route_max_segments=settings.long_route_max_segments,
+        long_route_max_images_per_segment=settings.long_route_max_images_per_segment,
     )
 
 

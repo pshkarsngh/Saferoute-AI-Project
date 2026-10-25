@@ -155,6 +155,17 @@ class TestMapillaryProvider(unittest.TestCase):
         self.assertEqual([i.image_id for i in res.images],
                          ["mapillary_fresh_near", "mapillary_fresh_far2"])
 
+    def test_per_call_cap_limits_downloads(self):
+        """PHASE_33: long-route mode caps frames before any thumbnail download."""
+        http = _FakeHttp({"data": [
+            _img("fresh_a", 12.9716, 77.5946, FRESH_MS),
+            _img("fresh_b", 12.9717, 77.5946, FRESH_MS),
+            _img("fresh_c", 12.9718, 77.5946, FRESH_MS),
+        ]})
+        res = _provider(http).get_imagery_for_segment(_segment(), max_images=1)
+        self.assertEqual(len(res.images), 1)
+        self.assertEqual(len(http.downloads), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

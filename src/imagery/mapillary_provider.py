@@ -27,6 +27,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import hashlib
+import dataclasses
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -104,6 +105,8 @@ class MapillaryImageryProvider(ImageryProvider):
 
     source_name = "mapillary"
     licence = "CC-BY-SA 4.0"
+    # PHASE_33: the per-call cap can be applied before thumbnails are downloaded.
+    supports_max_images = True
 
     def __init__(
         self,
@@ -123,7 +126,7 @@ class MapillaryImageryProvider(ImageryProvider):
         self.token = token or ""
         self.base_url = base_url.rstrip("/")
         self.storage_dir = Path(storage_dir) if storage_dir else (WORKSPACE_ROOT / DEFAULT_STORAGE_REL)
-        self.max_images = int(max_images)
+        self.max_images = max(1, int(max_images))
         self.radius_m = float(search_radius_m)
         self.thumbnail_width = int(thumbnail_width)
         self.download_thumbnails = bool(download_thumbnails)
@@ -164,10 +167,26 @@ class MapillaryImageryProvider(ImageryProvider):
             return True, self.licence, "Permitted (CC-BY-SA 4.0)."
         return False, "UNKNOWN", f"Source '{source}' is not the Mapillary permitted source."
 
-    def _fallback_result(self, segment: RouteSegment, note: str) -> ImageryResult:
+    def _fallback_result(
+        self,
+        segment: RouteSegment,
+        note: str,
+        max_images: Optional[int] = None,
+    ) -> ImageryResult:
         if self.fallback is not None:
-            res = self.fallback.get_imagery_for_segment(segment)
+            if max_images is not None and getattr(
+                self.fallback, "supports_max_images", False
+            ):
+                res = self.fallback.get_imagery_for_segment(
+                    segment, max_images=max_images
+                )
+            else:
+                res = self.fallback.get_imagery_for_segment(segment)
             res.limitations = list(res.limitations) + [note]
+            if max_images is not None and len(res.images) > max_images:
+                res = dataclasses.replace(
+                    res, images=list(res.images[:max_images])
+                )
             return res
         unavail = ImageryUnavailable(
             segment_id=segment.segment_id, reason=ImageryStatus.MISSING,
@@ -229,7 +248,15 @@ class MapillaryImageryProvider(ImageryProvider):
         self,
         segment: RouteSegment,
         permitted_source: Optional[str] = None,
+        max_images: Optional[int] = None,
     ) -> ImageryResult:
+        image_cap = self.max_images
+        if max_images is not None:
+            try:
+                image_cap = max(1, int(max_images))
+            except (TypeError, ValueError):
+                image_cap = self.max_images
+
         source = permitted_source or self.source_name
         allowed, licence, reason = self._permitted(source)
         if not allowed:
@@ -239,7 +266,10 @@ class MapillaryImageryProvider(ImageryProvider):
 
         if not self.token:
             return self._fallback_result(
-                segment, "live_mapillary_disabled_no_token_using_local_archive")
+                segment,
+                "live_mapillary_disabled_no_token_using_local_archive",
+                max_images=image_cap,
+            )
 
         coords = segment.geometry.coordinates
         if not coords:
@@ -314,7 +344,7 @@ class MapillaryImageryProvider(ImageryProvider):
         fresh = [e for e in evaluated if not e[3]]
         pool = fresh if fresh else evaluated
         pool.sort(key=lambda e: e[1])
-        pool = pool[: self.max_images]
+        pool = pool[:image_cap]
 
         now_iso = datetime.now(timezone.utc).isoformat()
         image_refs: List[ImageRef] = []

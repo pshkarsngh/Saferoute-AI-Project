@@ -102,6 +102,38 @@ class TestPermittedImageryAdapter(unittest.TestCase):
         self.assertIsNotNone(first_img.retrieved_at)
         self.assertLessEqual(first_img.distance_to_segment_m, 5.0)
 
+    def test_per_call_max_images_caps_matched_frames(self):
+        """PHASE_33: a per-call cap limits images without changing provenance."""
+        self.adapter._catalogue = []
+        now_utc = datetime.now(timezone.utc)
+        fresh_date = (now_utc - timedelta(days=30)).isoformat()
+        self.adapter.register_candidate_images([
+            {
+                "image_id": f"frame_cap_{i}",
+                "file_path": str(WORKSPACE_ROOT / "data" / "imagery" / f"frame_cap_{i}.jpg"),
+                "source": "workspace_dashcam_v1",
+                "coordinates": (77.5946, 12.9716),
+                "captured_at": fresh_date,
+            }
+            for i in range(2)
+        ])
+
+        capped = self.adapter.get_imagery_for_segment(
+            self.segment,
+            permitted_source="workspace_dashcam_v1",
+            max_images=1,
+        )
+        self.assertEqual(len(capped.images), 1)
+        self.assertEqual(capped.images[0].source, "workspace_dashcam_v1")
+        self.assertEqual(capped.images[0].licence, "CC-BY 4.0")
+
+        uncapped = self.adapter.get_imagery_for_segment(
+            self.segment,
+            permitted_source="workspace_dashcam_v1",
+            max_images=5,
+        )
+        self.assertEqual(len(uncapped.images), 2)
+
     def test_rule_9_unmatched_segment_yields_unavailable(self):
         """Segment with no imagery within 25m buffer returns UNMATCHED and never assumes safety."""
         # Query a segment in London (far away from Bangalore coordinates)

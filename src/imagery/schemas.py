@@ -17,6 +17,9 @@ class ImageryStatus(str, Enum):
     INACCESSIBLE = "inaccessible"
     DISALLOWED_SOURCE = "disallowed_source"
     UNMATCHED = "unmatched"
+    # PHASE_33: a segment deliberately omitted by the long-route evidence budget.
+    # It is NOT a claim that no imagery exists; the segment remains unassessed.
+    NOT_SAMPLED = "not_sampled"
 
 
 @dataclass(frozen=True)

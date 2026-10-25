@@ -32,6 +32,15 @@ app:
     thumbnail_width: 1024
     download_thumbnails: true
     timeout_seconds: 15.0
+    # PHASE_33: bound the cost of very long corridors. Routes longer than
+    # threshold_m use at most max_images_per_segment frames per assessed segment;
+    # if they also exceed max_assessed_segments_per_route, an evenly-spaced
+    # subset is assessed and the unassessed remainder is explicitly disclosed
+    # and kept in the coverage denominator (never treated as safe).
+    long_route:
+      threshold_m: 100000
+      max_assessed_segments_per_route: 400
+      max_images_per_segment: 1
     # PHASE_23B: local sample imagery is NOT geographically matched and is OFF by
     # default. Enable only for an explicit, clearly-labelled demo (no fabricated
     # coordinates, no route-evidence claims).

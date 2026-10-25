@@ -33,6 +33,10 @@ class PermittedImageryAdapter(ImageryProvider):
     - Rule 1: Stored imagery is kept strictly inside the workspace.
     """
 
+    # PHASE_33: the adapter can honour a per-call frame cap before building
+    # ImageRef records, so long-route analyses do not pay for extra imagery.
+    supports_max_images = True
+
     def __init__(
         self,
         config_path: Optional[Union[str, Path]] = None,
@@ -111,8 +115,21 @@ class PermittedImageryAdapter(ImageryProvider):
         self,
         segment: RouteSegment,
         permitted_source: Optional[str] = None,
+        max_images: Optional[int] = None,
     ) -> ImageryResult:
-        """Fetch permitted imagery matching a route segment."""
+        """Fetch permitted imagery matching a route segment.
+
+        ``max_images`` applies a per-call cap (used by long-route mode). It can
+        only reduce the configured cap; it never increases the amount of
+        evidence requested from the source.
+        """
+        image_cap = self.matcher.max_images
+        if max_images is not None:
+            try:
+                image_cap = max(1, int(max_images))
+            except (TypeError, ValueError):
+                image_cap = self.matcher.max_images
+
         source_name = permitted_source or "workspace_dashcam_v1"
         is_allowed, licence, reason = self.is_source_permitted(source_name)
 
@@ -160,11 +177,16 @@ class PermittedImageryAdapter(ImageryProvider):
 
         # Perform spatial matching within the configured buffer (ARCHITECTURE §8)
         matches = self.matcher.match_candidates(segment, matchable_candidates)
+        if len(matches) > image_cap:
+            # PHASE_33: enforce the per-call cap before constructing results.
+            matches = matches[:image_cap]
         if not matches:
             # PHASE_23B: demo imagery is only ever used when explicitly enabled,
             # and it is disclosed as NOT geographically matched (Rule 9, Rule 20).
             if self.demo_mode and demo_candidates:
-                return self._demo_result(segment, source_name, licence, demo_candidates)
+                return self._demo_result(
+                    segment, source_name, licence, demo_candidates, max_images=image_cap
+                )
 
             unavail = ImageryUnavailable(
                 segment_id=segment.segment_id,
@@ -259,6 +281,7 @@ class PermittedImageryAdapter(ImageryProvider):
         source_name: str,
         licence: str,
         demo_candidates: List[Dict[str, Any]],
+        max_images: Optional[int] = None,
     ) -> ImageryResult:
         """Build an explicitly-disclosed demo imagery result (never route evidence)."""
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -267,7 +290,14 @@ class PermittedImageryAdapter(ImageryProvider):
         # PHASE_25: the configured per-segment image cap applies to the demo path
         # too, so enabling demo mode cannot multiply inference work by the whole
         # archive (config/imagery.yaml -> matching.max_images_per_segment).
-        for cand in demo_candidates[: self.matcher.max_images]:
+        # PHASE_33: an explicit per-call cap takes precedence (long-route mode).
+        cap = self.matcher.max_images
+        if max_images is not None:
+            try:
+                cap = max(1, int(max_images))
+            except (TypeError, ValueError):
+                cap = self.matcher.max_images
+        for cand in demo_candidates[:cap]:
             is_stale, _age, _stale_note = self.staleness_evaluator.evaluate(cand.get("captured_at"))
             if is_stale:
                 has_any_stale = True

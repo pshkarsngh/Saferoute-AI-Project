@@ -19,15 +19,50 @@ from typing import Any, Dict, List, Optional
 from src.config.thresholds import assert_threshold_consistency
 from src.facilities.service import FacilitiesService
 from src.imagery.adapter import PermittedImageryAdapter
+from src.imagery.schemas import (
+    ImageryResult,
+    ImageryStatus,
+    ImageryUnavailable,
+)
 from src.llm.explainer import GroundedExplanationService
 from src.risk.aggregate import HazardAggregator, deduplicate_adjacent_segment_hazards
 from src.risk.comparison import RouteComparer, assessed_length_fraction
 from src.risk.engine import DeterministicRiskEngine
-from src.risk.schemas import AssessmentStatus
+from src.risk.schemas import (
+    AssessmentStatus,
+    CoverageInfo,
+    SegmentAssessment,
+)
 from src.routing.adapter import create_routing_adapter
 from src.routing.schemas import Coordinate, RouteRequest, RoutingStatus
 
 MODEL_VERSION = "saferoute-yolo11-v2"
+
+# PHASE_33: long-route evidence budget. A 250–320 km corridor contains
+# thousands of 200 m segments and can take 10+ minutes to assess completely.
+# Routes above the threshold are assessed from an evenly-spaced sample and one
+# frame per segment. The unassessed remainder is kept in the denominator (and
+# disclosed), so a sampled route can never look fully assessed.
+DEFAULT_LONG_ROUTE_THRESHOLD_M = 100_000.0
+DEFAULT_LONG_ROUTE_MAX_SEGMENTS = 400
+DEFAULT_LONG_ROUTE_MAX_IMAGES = 1
+
+
+def _evenly_spaced_indices(total: int, limit: int) -> List[int]:
+    """Return ``limit`` deterministic indices spread across ``range(total)``.
+
+    The first and last segments are always included, so the sampled evidence
+    covers the start and end of the corridor as well as its middle. Indices are
+    unique and strictly increasing (the step is > 1 whenever sampling occurs).
+    """
+    if total <= 0 or limit <= 0:
+        return []
+    if total <= limit:
+        return list(range(total))
+    if limit == 1:
+        return [0]
+    step = (total - 1) / (limit - 1)
+    return sorted({int(round(i * step)) for i in range(limit)})
 
 
 def _restamp_detection_result(result, route_id: str, segment_id: str):
@@ -65,6 +100,9 @@ class SafetyAnalysisPipeline:
         explainer=None,
         comparer=None,
         imagery_workers: Optional[int] = None,
+        long_route_threshold_m: Optional[float] = None,
+        long_route_max_segments: Optional[int] = None,
+        long_route_max_images_per_segment: Optional[int] = None,
     ):
         self.routing = routing_provider or create_routing_adapter("mock")
         self.imagery = imagery_adapter or PermittedImageryAdapter()
@@ -92,6 +130,47 @@ class SafetyAnalysisPipeline:
             except (TypeError, ValueError):
                 imagery_workers = 16
         self.imagery_workers = max(1, int(imagery_workers))
+
+        # PHASE_33: bound the work for very long corridors. The defaults are
+        # deliberately conservative (400 segments, one frame each) and every
+        # applied cap is disclosed in the route record. A short route is never
+        # sampled: its full segment list and configured image count are used.
+        if long_route_threshold_m is None:
+            try:
+                long_route_threshold_m = float(
+                    os.environ.get(
+                        "SAFEROUTE_LONG_ROUTE_THRESHOLD_M",
+                        str(DEFAULT_LONG_ROUTE_THRESHOLD_M),
+                    )
+                )
+            except (TypeError, ValueError):
+                long_route_threshold_m = DEFAULT_LONG_ROUTE_THRESHOLD_M
+        if long_route_max_segments is None:
+            try:
+                long_route_max_segments = int(
+                    os.environ.get(
+                        "SAFEROUTE_LONG_ROUTE_MAX_SEGMENTS",
+                        str(DEFAULT_LONG_ROUTE_MAX_SEGMENTS),
+                    )
+                )
+            except (TypeError, ValueError):
+                long_route_max_segments = DEFAULT_LONG_ROUTE_MAX_SEGMENTS
+        if long_route_max_images_per_segment is None:
+            try:
+                long_route_max_images_per_segment = int(
+                    os.environ.get(
+                        "SAFEROUTE_LONG_ROUTE_MAX_IMAGES",
+                        str(DEFAULT_LONG_ROUTE_MAX_IMAGES),
+                    )
+                )
+            except (TypeError, ValueError):
+                long_route_max_images_per_segment = DEFAULT_LONG_ROUTE_MAX_IMAGES
+
+        self.long_route_threshold_m = max(0.0, float(long_route_threshold_m))
+        self.long_route_max_segments = max(1, int(long_route_max_segments))
+        self.long_route_max_images_per_segment = max(
+            1, int(long_route_max_images_per_segment)
+        )
 
         # PHASE_31: the per-request detection memo (PHASE_27) is complemented by
         # a process-wide memo keyed on the IMAGE FILE IDENTITY (path, size,
@@ -172,21 +251,63 @@ class SafetyAnalysisPipeline:
         # (Rules 7, 9, 10).
         routes = list(resp.routes)
         per_route_segments = [list(route.segments) for route in routes]
-        flat_segments = [seg for segs in per_route_segments for seg in segs]
+        # PHASE_33: decide the evidence budget BEFORE fetching any imagery. A
+        # sampled long route only pays the network/YOLO cost for the segments it
+        # will actually assess; skipped segments are still carried through the
+        # risk denominator by _analyze_route.
+        plans = [self._long_route_plan(route) for route in routes]
+        flat_segments = []
+        flat_caps = []
+        route_slices = []
+        for segments, plan in zip(per_route_segments, plans):
+            selected = [segments[i] for i in plan["selected_indices"]]
+            start = len(flat_segments)
+            flat_segments.extend(selected)
+            flat_caps.extend([plan["max_images"]] * len(selected))
+            route_slices.append((start, len(selected)))
+
         t0 = time.perf_counter()
-        flat_imagery = self._prefetch_segment_imagery(flat_segments)
+        flat_imagery = self._prefetch_segment_imagery(flat_segments, max_images=flat_caps)
         imagery_ms = (time.perf_counter() - t0) * 1000.0
 
-        cursor = 0
+        long_route_plans = [p for p in plans if p["long_route"]]
+        if long_route_plans:
+            sampled_count = sum(1 for p in plans if p["sampled"])
+            record["long_route_mode"] = {
+                "threshold_m": self.long_route_threshold_m,
+                "max_segments_per_route": self.long_route_max_segments,
+                "max_images_per_segment": self.long_route_max_images_per_segment,
+                "routes_affected": len(long_route_plans),
+                "routes_sampled": sampled_count,
+            }
+            record["limitations"].append(
+                f"Long-route evidence budget: {len(long_route_plans)} route(s) "
+                f"over {self.long_route_threshold_m / 1000:.0f} km used at most "
+                f"{self.long_route_max_images_per_segment} frame(s) per assessed "
+                f"segment"
+                + (
+                    f" and at most {self.long_route_max_segments} assessed "
+                    f"segments per route"
+                    if sampled_count
+                    else ""
+                )
+                + "; unassessed portions are disclosed per route and are not "
+                "treated as safe."
+            )
+
         # PHASE_27: one detection memo per analysis request. Segments that match
         # the same downloaded frame share one YOLO inference (results re-stamped
         # per segment), removing duplicate work without changing evidence.
         detection_cache: Dict[Any, Any] = {}
-        for route, segments in zip(routes, per_route_segments):
-            route_imagery = flat_imagery[cursor:cursor + len(segments)]
-            cursor += len(segments)
+        for route, (start, count) in zip(routes, route_slices):
+            route_imagery = flat_imagery[start:start + count]
             record["routes"].append(
-                self._analyze_route(route, route_imagery, detection_cache=detection_cache))
+                self._analyze_route(
+                    route,
+                    route_imagery,
+                    detection_cache=detection_cache,
+                )
+            )
 
         t0 = time.perf_counter()
         record["comparison"] = self._build_comparison(record["routes"], assessed_at=record["created_at"])
@@ -301,7 +422,140 @@ class SafetyAnalysisPipeline:
                 }
         return explanations
 
-    def _prefetch_segment_imagery(self, segments) -> List[Any]:
+    def _long_route_plan(self, route) -> Dict[str, Any]:
+        """Decide which segments of ``route`` to assess and how many frames each.
+
+        Short routes keep their complete segment list and the provider's normal
+        image cap. A route longer than ``long_route_threshold_m`` gets the
+        reduced per-segment image cap; if it also has more segments than
+        ``long_route_max_segments``, an evenly-spaced subset is selected.
+
+        The skipped segments are NOT removed from the route: ``_analyze_route``
+        adds them as explicit unassessed assessments and lengths, so the
+        coverage denominator is the whole route and the disclosure remains
+        honest (Rule 9).
+        """
+        segments = list(route.segments)
+        total = len(segments)
+        route_length_m = sum(float(s.length_m) for s in segments)
+        is_long = total > 0 and route_length_m > self.long_route_threshold_m
+
+        if not is_long:
+            return {
+                "long_route": False,
+                "sampled": False,
+                "selected_indices": list(range(total)),
+                "max_images": None,
+                "route_length_m": route_length_m,
+                "threshold_m": self.long_route_threshold_m,
+                "total_segments": total,
+                "assessed_segments": total,
+                "limitations": [],
+            }
+
+        limit = min(total, self.long_route_max_segments)
+        selected = _evenly_spaced_indices(total, limit)
+        sampled = len(selected) < total
+        limitations: List[str] = []
+        if sampled:
+            limitations.append(
+                f"Long-route sampling: {len(selected)} of {total} segments were "
+                f"assessed (~{len(selected) / total:.0%} of the segment count, "
+                f"spread evenly along the route). Unassessed segments remain "
+                f"unassessed and are not treated as safe."
+            )
+        limitations.append(
+            f"Long-route imagery budget: at most "
+            f"{self.long_route_max_images_per_segment} frame(s) per assessed "
+            f"segment for routes over {self.long_route_threshold_m / 1000:.0f} km; "
+            f"per-segment evidence is reduced and disclosed."
+        )
+        return {
+            "long_route": True,
+            "sampled": sampled,
+            "selected_indices": selected,
+            "max_images": self.long_route_max_images_per_segment,
+            "route_length_m": route_length_m,
+            "threshold_m": self.long_route_threshold_m,
+            "total_segments": total,
+            "assessed_segments": len(selected),
+            "limitations": limitations,
+        }
+
+    def _get_imagery(self, segment, max_images: Optional[int] = None):
+        """Fetch imagery, applying an optional per-call frame cap.
+
+        Production providers expose ``supports_max_images`` so the cap is
+        enforced before downloading (the expensive part). Any provider without
+        that capability is still safe: its result is truncated here, and the
+        truncated count is what detection/coverage use.
+        """
+        if max_images is None:
+            return self.imagery.get_imagery_for_segment(segment)
+        if getattr(self.imagery, "supports_max_images", False):
+            imagery = self.imagery.get_imagery_for_segment(
+                segment, max_images=max_images
+            )
+        else:
+            imagery = self.imagery.get_imagery_for_segment(segment)
+        return self._cap_imagery(imagery, max_images)
+
+    @staticmethod
+    def _cap_imagery(imagery, max_images: int):
+        """Return ``imagery`` with at most ``max_images`` frames (copy if needed)."""
+        if max_images is None or len(imagery.images) <= max_images:
+            return imagery
+        return dataclasses.replace(imagery, images=list(imagery.images[:max_images]))
+
+    @staticmethod
+    def _not_sampled_imagery(segment, max_images: int) -> ImageryResult:
+        """Explicit record for a segment deliberately omitted by the long-route cap."""
+        limitation = "long_route_segment_not_sampled"
+        detail = ImageryUnavailable(
+            segment_id=segment.segment_id,
+            reason=ImageryStatus.NOT_SAMPLED,
+            message=(
+                "This segment was not sampled because the route exceeded the "
+                "long-route evidence budget; its safety is unassessed."
+            ),
+            limitations=[limitation, "missing_imagery_not_safe"],
+        )
+        return ImageryResult(
+            segment_id=segment.segment_id,
+            status=ImageryStatus.NOT_SAMPLED,
+            images=[],
+            unavailable_detail=detail,
+            source=None,
+            licence=None,
+            limitations=list(detail.limitations),
+        )
+
+    def _unassessed_sampled_segment(self, segment, max_images: int) -> SegmentAssessment:
+        """Assessment placeholder that keeps skipped length in the denominator."""
+        return SegmentAssessment(
+            segment_id=segment.segment_id,
+            route_id=segment.route_id,
+            model_version=getattr(
+                getattr(self.aggregator, "policy", None),
+                "model_version",
+                MODEL_VERSION,
+            ),
+            coverage=CoverageInfo(
+                images_total=max(1, int(max_images)),
+                images_used=0,
+                fraction=0.0,
+            ),
+            hazards=[],
+            aggregate_hazard=0.0,
+            status=AssessmentStatus.UNASSESSED,
+            limitations=["long_route_segment_not_sampled"],
+        )
+
+    def _prefetch_segment_imagery(
+        self,
+        segments,
+        max_images: Optional[Any] = None,
+    ) -> List[Any]:
         """Retrieve imagery for every segment, preserving segment order.
 
         Retrieval is pure network I/O with no ordering dependency, so it runs in a
@@ -309,21 +563,32 @@ class SafetyAnalysisPipeline:
         the downstream detection/aggregation/scoring loop sees exactly the same
         sequence it would have seen sequentially (Rules 7, 9, 10).
 
-        Any per-segment failure is re-raised in segment order, so a provider error
-        surfaces exactly as it would have in the sequential path.
+        ``max_images`` may be one cap for every segment or a per-segment list.
+        Any per-segment failure is re-raised in segment order, so a provider
+        error surfaces exactly as it would have in the sequential path.
         """
         segments = list(segments)
         if not segments:
             return []
+        if isinstance(max_images, (list, tuple)):
+            caps = list(max_images)
+            if len(caps) != len(segments):
+                caps = [None] * len(segments)
+        else:
+            caps = [max_images] * len(segments)
+
         if self.imagery_workers <= 1 or len(segments) == 1:
-            return [self.imagery.get_imagery_for_segment(seg) for seg in segments]
+            return [
+                self._get_imagery(seg, caps[i])
+                for i, seg in enumerate(segments)
+            ]
 
         results: List[Any] = [None] * len(segments)
         errors: Dict[int, BaseException] = {}
 
         def fetch(index: int, segment) -> None:
             try:
-                results[index] = self.imagery.get_imagery_for_segment(segment)
+                results[index] = self._get_imagery(segment, caps[index])
             except BaseException as exc:  # noqa: BLE001 - surfaced in original order
                 errors[index] = exc
 
@@ -394,7 +659,13 @@ class SafetyAnalysisPipeline:
                     result, detections=list(result.detections))
         return result
 
-    def _analyze_route(self, route, imagery_by_index=None, detection_cache=None) -> Dict[str, Any]:
+    def _analyze_route(
+        self,
+        route,
+        imagery_by_index=None,
+        detection_cache=None,
+        plan: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         segment_assessments = []
         lengths: List[float] = []
         imagery_meta: List[Dict[str, Any]] = []
@@ -405,11 +676,44 @@ class SafetyAnalysisPipeline:
             detection_cache = {}
 
         segment_list = list(route.segments)
+        if plan is None:
+            plan = self._long_route_plan(route)
         if imagery_by_index is None:
-            # Standalone call (e.g. tests): fetch this route's imagery now.
-            imagery_by_index = self._prefetch_segment_imagery(segment_list)
+            # Standalone call (e.g. tests): fetch imagery for the segments this
+            # route's evidence budget selected.
+            selected_segments = [
+                segment_list[i] for i in plan["selected_indices"]
+            ]
+            imagery_by_index = self._prefetch_segment_imagery(
+                selected_segments, max_images=plan["max_images"]
+            )
 
-        for seg, imagery in zip(segment_list, imagery_by_index):
+        imagery_map = {
+            index: imagery
+            for index, imagery in zip(plan["selected_indices"], imagery_by_index)
+        }
+        skipped_max_images = plan["max_images"] or 1
+
+        for index, seg in enumerate(segment_list):
+            imagery = imagery_map.get(index)
+            if imagery is None:
+                # Explicitly unassessed: the segment was deliberately skipped by
+                # the long-route budget. It stays in lengths/segment_scores so
+                # coverage and assessed_length_fraction remain truthful.
+                segment_assessments.append(
+                    self._unassessed_sampled_segment(seg, skipped_max_images)
+                )
+                lengths.append(seg.length_m)
+                imagery_meta.append(
+                    self._not_sampled_imagery(seg, skipped_max_images).to_dict()
+                )
+                continue
+
+            if plan["max_images"] is not None:
+                # Defensive: a caller-supplied provider may not support the
+                # per-call cap, so enforce it here too.
+                imagery = self._cap_imagery(imagery, plan["max_images"])
+
             image_results = []
             expected = 0
             if imagery.is_available:
@@ -497,6 +801,26 @@ class SafetyAnalysisPipeline:
                 "Stale imagery (captured beyond policy age or unverifiable) contributed "
                 "to evidence; stale evidence is not used to justify a recommendation (Rule 9)."
             ]
+
+        if plan["long_route"]:
+            # Additive, machine-readable disclosure. The frontend already renders
+            # route limitations and the assessed-length/imagery bars, so the
+            # reduced evidence budget is visible rather than silently applied.
+            result["long_route"] = {
+                "applied": True,
+                "sampled": bool(plan["sampled"]),
+                "route_length_m": round(plan["route_length_m"], 1),
+                "threshold_m": plan["threshold_m"],
+                "assessed_segments": plan["assessed_segments"],
+                "total_segments": plan["total_segments"],
+                "max_images_per_segment": plan["max_images"],
+                "assessed_length_fraction": result.get("assessed_length_fraction"),
+            }
+            limitations = list(result.get("limitations") or [])
+            for note in plan["limitations"]:
+                if note not in limitations:
+                    limitations.append(note)
+            result["limitations"] = limitations
         return result
 
     def _build_comparison(self, routes: List[Dict[str, Any]],

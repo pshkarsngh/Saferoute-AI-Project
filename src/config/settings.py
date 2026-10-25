@@ -57,6 +57,11 @@ class Settings:
     mapillary_download: bool = True
     mapillary_timeout_seconds: float = 15.0
 
+    # --- Long-route evidence budget (PHASE_33) -------------------------
+    long_route_threshold_m: float = 100000.0
+    long_route_max_segments: int = 400
+    long_route_max_images_per_segment: int = 1
+
     # --- LLM (Ollama) --------------------------------------------------
     llm_enabled: bool = True
     llm_base_url: str = "http://127.0.0.1:11434"
@@ -103,6 +108,7 @@ def load_settings(
     app = cfg.get("app", {}) or {}
     geo = app.get("geocoding", {}) or {}
     imag = app.get("imagery", {}) or {}
+    long_route = imag.get("long_route", {}) or {}
     llm = app.get("llm", {}) or {}
     server = app.get("server", {}) or {}
 
@@ -121,6 +127,9 @@ def load_settings(
         mapillary_thumbnail_width=int(imag.get("thumbnail_width", 1024)),
         mapillary_download=bool(imag.get("download_thumbnails", True)),
         mapillary_timeout_seconds=float(imag.get("timeout_seconds", 15.0)),
+        long_route_threshold_m=float(long_route.get("threshold_m", 100000.0)),
+        long_route_max_segments=int(long_route.get("max_assessed_segments_per_route", 400)),
+        long_route_max_images_per_segment=int(long_route.get("max_images_per_segment", 1)),
         llm_enabled=bool(llm.get("enabled", True)),
         llm_base_url=str(llm.get("base_url", "http://127.0.0.1:11434")),
         llm_model=str(llm.get("model", "llama3.2")),
@@ -157,5 +166,14 @@ def load_settings(
     # Imagery: token presence enables the live Mapillary source.
     s.mapillary_token = get_env("MAPILLARY_ACCESS_TOKEN", "") or ""
     s.mapillary_max_images = get_int("SAFEROUTE_MAPILLARY_MAX_IMAGES", s.mapillary_max_images)
+    s.long_route_threshold_m = get_float(
+        "SAFEROUTE_LONG_ROUTE_THRESHOLD_M", s.long_route_threshold_m
+    )
+    s.long_route_max_segments = get_int(
+        "SAFEROUTE_LONG_ROUTE_MAX_SEGMENTS", s.long_route_max_segments
+    )
+    s.long_route_max_images_per_segment = get_int(
+        "SAFEROUTE_LONG_ROUTE_MAX_IMAGES", s.long_route_max_images_per_segment
+    )
 
     return s
