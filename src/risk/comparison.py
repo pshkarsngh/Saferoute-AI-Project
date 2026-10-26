@@ -89,6 +89,8 @@ def assessed_length_fraction(route: Dict[str, Any]) -> float:
     for s in segs:
         length = float(s.get("length_m") or 0.0)
         total += length
+        if s.get("is_suppressed"):
+            continue
         if s.get("segment_score") is not None:
             scored += length
     if total <= 0.0:

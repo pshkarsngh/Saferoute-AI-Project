@@ -180,6 +180,13 @@ class HazardAggregator:
         """Filter a single detection by confidence and convert to a HazardRecord."""
         if detection.confidence < self.policy.confidence_threshold:
             return None
+        # Rule 5: unsupported/unrecognized classes must not become scored hazards
+        det_status = getattr(detection, "status", None)
+        if det_status == "unsupported_class":
+            return None
+        hazard_cls = getattr(detection, "hazard_class", "") or ""
+        if isinstance(hazard_cls, str) and hazard_cls.startswith("unsupported_class"):
+            return None
 
         # Calculate bounded severity
         severity = self.policy.calculate_severity(

@@ -41,10 +41,21 @@ WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def _parse_coord(value: Any) -> Optional[Coordinate]:
-    if isinstance(value, dict) and "latitude" in value and "longitude" in value:
-        return Coordinate(latitude=float(value["latitude"]), longitude=float(value["longitude"]))
-    if isinstance(value, (list, tuple)) and len(value) == 2:
-        return Coordinate(latitude=float(value[0]), longitude=float(value[1]))
+    try:
+        if isinstance(value, dict) and "latitude" in value and "longitude" in value:
+            lat = float(value["latitude"])
+            lon = float(value["longitude"])
+            if lat < -90.0 or lat > 90.0 or lon < -180.0 or lon > 180.0:
+                return None
+            return Coordinate(latitude=lat, longitude=lon)
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            lat = float(value[0])
+            lon = float(value[1])
+            if lat < -90.0 or lat > 90.0 or lon < -180.0 or lon > 180.0:
+                return None
+            return Coordinate(latitude=lat, longitude=lon)
+    except (TypeError, ValueError):
+        return None
     return None
 
 
