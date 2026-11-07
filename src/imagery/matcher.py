@@ -74,7 +74,7 @@ def point_to_segment_distance_m(
 
 
 class SegmentImageryMatcher:
-    """Matches candidate street-level imagery frames to route segments.
+    r"""Matches candidate street-level imagery frames to route segments.
     
     Documented Limitations (ARCHITECTURE §8):
     1. GPS Drift: Mobile dashcams exhibit $\pm 5-15$ meters positioning drift.
