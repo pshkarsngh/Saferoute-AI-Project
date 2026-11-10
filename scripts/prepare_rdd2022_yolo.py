@@ -18,8 +18,10 @@ import os, sys, json, csv, random, hashlib, argparse
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
 
-WS = r"D:\New folder (3)"
+# P0 portability repair: derive the workspace root from this file (scripts/).
+WS = str(Path(__file__).resolve().parent.parent)
 RDD = os.path.join(WS, "data", "raw", "RDD2022", "RDD2022")
 DUP_CSV = os.path.join(WS, "reports", "phase20", "duplicate_groups.csv")
 

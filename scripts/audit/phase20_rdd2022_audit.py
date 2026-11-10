@@ -21,8 +21,10 @@ import hashlib
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
 
-WS = r"D:\New folder (3)"
+# P0 portability repair: workspace root derived from this file (scripts/audit/).
+WS = str(Path(__file__).resolve().parents[2])
 DATA = os.path.join(WS, "data", "raw", "RDD2022", "RDD2022")
 OUT_DIR = os.path.join(WS, "reports", "phase20")
 

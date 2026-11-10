@@ -1,0 +1,138 @@
+{
+  "run": "P0 runnable-environment restoration",
+  "date_utc": "2026-11-10",
+  "environment": {
+    "python": "3.12.10",
+    "venv": ".venv",
+    "os": "Windows (win32)",
+    "torch": "2.13.0+cu130",
+    "torchvision": "0.28.0+cu130",
+    "ultralytics": "8.4.163",
+    "opencv_python": "4.14.0.94",
+    "numpy": "2.5.3",
+    "pyyaml": "6.0.3",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 5050 Laptop GPU"
+  },
+  "tests": {
+    "command": ".\\.venv\\Scripts\\python.exe -m unittest discover -s tests -t . -v",
+    "ran": 351,
+    "result": "OK",
+    "duration_seconds": 21.791
+  },
+  "checkpoint": {
+    "status": "NON_PRODUCTION_P0_SMOKE_SUBSTITUTE",
+    "source": "models/training/p0-smoke/weights/best.pt",
+    "bytes": 5443482,
+    "sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+    "training_seconds": 335.4,
+    "epochs": 8,
+    "imgsz": 640,
+    "batch": 8,
+    "seed": 0,
+    "device": "cuda:0",
+    "val_mAP50": 0.115,
+    "val_mAP50_95": 0.0386,
+    "val_images": 178,
+    "val_instances": 475,
+    "serving_copies": [
+      "models/training/saferoute-yolo11-v1/weights/best.pt",
+      "models/training/saferoute-yolo11-v2/weights/best.pt"
+    ],
+    "markers": [
+      "models/training/saferoute-yolo11-v1/P0_SMOKE_SUBSTITUTE.json",
+      "models/training/saferoute-yolo11-v2/P0_SMOKE_SUBSTITUTE.json"
+    ]
+  },
+  "health": {
+    "endpoint": "GET /api/health",
+    "first_ok_after_seconds": 0.7,
+    "status": "ok",
+    "model_version": "saferoute-yolo11-v2",
+    "config_hash": "61B8143B42DF7FA76D2FF53902D4509D864D75B2705898FB32466E1559621D01",
+    "providers": {
+      "routing": "multi",
+      "imagery": "mapillary",
+      "facilities": "overpass",
+      "geocoding": "nominatim",
+      "llm": "ollama"
+    },
+    "capabilities": {
+      "geocoding": true,
+      "live_imagery": true,
+      "live_llm": true
+    }
+  },
+  "endpoint_evidence": [
+    {"endpoint": "GET /api/config", "http": 200, "result": "ok", "note": "mapillary_token_present=true, token value not returned"},
+    {"endpoint": "POST /api/geocode", "http": 200, "result": "ok", "ms": 1296, "note": "\"Connaught Place, New Delhi\" -> 28.63177, 77.21938 (nominatim)"},
+    {"endpoint": "POST /api/routes", "http": 200, "result": "ok", "ms": 1074, "note": "2 OSRM routes, 4963.2 m / 485.0 s and 6307.8 m / 605.4 s"},
+    {"endpoint": "POST /api/facilities", "http": 200, "result": "ok", "ms": 45275, "note": "164 live OSM facilities, radius 1000 m, distance_basis=straight_line_haversine"},
+    {"endpoint": "POST /api/analyze", "http": 200, "result": "partially_assessed", "ms": 31999, "analysis_id": "an-16f14c72dbbd"},
+    {"endpoint": "GET /api/analyze/an-16f14c72dbbd", "http": 200, "result": "ok", "ms": 132},
+    {"endpoint": "GET /api/analysis/an-16f14c72dbbd/hazards", "http": 200, "result": "ok", "ms": 5, "note": "hazards_count=0"},
+    {"endpoint": "GET /api/analysis/an-16f14c72dbbd/comparison", "http": 200, "result": "ok", "ms": 5, "note": "recommendation_status=cannot_determine, ranking=2"},
+    {"endpoint": "GET /api/analysis/an-16f14c72dbbd/explanation", "http": 200, "result": "ok", "ms": 5, "note": "source=fallback, referenced_routes=2"},
+    {"endpoint": "GET /api/analyze/an-doesnotexist", "http": 404, "result": "correctly rejected", "ms": 15},
+    {"endpoint": "GET /", "http": 200, "result": "ok", "ms": 25.5, "note": "built React app, 472 bytes index"},
+    {"endpoint": "GET /assets/index-CXsvefbt.js", "http": 200, "result": "ok", "note": "1585746 bytes"},
+    {"endpoint": "GET /assets/index-BiUo2j2m.css", "http": 200, "result": "ok", "note": "152651 bytes"},
+    {"endpoint": "GET /favicon.svg", "http": 200, "result": "ok", "note": "9522 bytes"}
+  ],
+  "analysis": {
+    "analysis_id": "an-16f14c72dbbd",
+    "status": "partially_assessed",
+    "model_version": "saferoute-yolo11-v2",
+    "origin": {"latitude": 28.6139, "longitude": 77.209},
+    "destination": {"latitude": 28.63177, "longitude": 77.21938},
+    "timings_ms": {
+      "routing_ms": 901.0,
+      "imagery_ms": 17177.6,
+      "detection_ms": 7695.9,
+      "risk_scoring_ms": 0.7,
+      "comparison_ms": 0.1,
+      "explanation_ms": 2016.7,
+      "route_explanations_ms": 2016.1,
+      "total_ms": 31524.5
+    },
+    "imagery": "live Mapillary, 47 and 65 images per route, all usable",
+    "evidence_class": "stale",
+    "recommendation_status": "cannot_determine",
+    "recommended_route_id": null,
+    "routes": [
+      {
+        "route_id": "rt-osrm-c01c-00",
+        "distance_m": 4300.9,
+        "duration_s": 471.3,
+        "route_score": 100.0,
+        "coverage": {"images_total": 47, "images_used": 47, "fraction": 1.0},
+        "assessed_length_fraction": 0.9387,
+        "hazards_total": 0,
+        "detection_outcome": "insufficient_coverage",
+        "eligible_for_recommendation": false
+      },
+      {
+        "route_id": "rt-osrm-c01c-01",
+        "distance_m": 4995.2,
+        "duration_s": 476.2,
+        "route_score": 100.0,
+        "coverage": {"images_total": 65, "images_used": 65, "fraction": 1.0},
+        "assessed_length_fraction": 0.8617,
+        "hazards_total": 0,
+        "detection_outcome": "insufficient_coverage",
+        "eligible_for_recommendation": false
+      }
+    ],
+    "explanation_source": "fallback",
+    "explanation_model": null,
+    "note": "A score of 100 means no supported hazard was detected in the available imagery; it is not proof the road is safe. Stale imagery is never used to justify a recommendation (Rule 9)."
+  },
+  "detector_sanity": {
+    "images": "first 20 images of data/splits_v2/test.txt",
+    "device": "cuda:0",
+    "conf_0.25": {"images_with_detections": 1, "total_detections": 1},
+    "conf_0.10": {"images_with_detections": 12, "total_detections": 19},
+    "conf_0.05": {"images_with_detections": 15, "total_detections": 41},
+    "interpretation": "Pipeline is functional at the configured 0.25 threshold; the smoke checkpoint is intentionally weak, which explains zero hazard detections on live street imagery."
+  }
+}

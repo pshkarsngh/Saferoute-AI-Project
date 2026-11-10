@@ -3,11 +3,14 @@
 # Originals are NOT modified. Do not overwrite data/dataset.yaml.
 # Rules: master_rules.md 1, 5, 9, 14, 15, 17, 18, 20.
 
-path: D:/New folder (3)/data/derived_2class
+# P0 portability repair: workspace-relative paths (no absolute D:/New folder (3)).
+# Ultralytics resolves `path` and the split entries relative to the current
+# working directory, which for every SafeRoute script is the workspace root.
+path: .
 
-train: D:/New folder (3)/data/splits_v2/train.txt
-val: D:/New folder (3)/data/splits_v2/val.txt
-test: D:/New folder (3)/data/splits_v2/test.txt
+train: data/splits_v2/train.txt
+val: data/splits_v2/val.txt
+test: data/splits_v2/test.txt
 
 # Derived two-class mapping: manhole (class 2) removed only in the
 # derived labels; the original annotation is preserved unchanged.

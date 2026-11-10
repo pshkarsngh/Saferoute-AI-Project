@@ -19,10 +19,12 @@ import csv
 import hashlib
 from collections import defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
 
 import cv2
 
-WS = r"D:\New folder (3)"
+# P0 portability repair: workspace root derived from this file (scripts/audit/).
+WS = str(Path(__file__).resolve().parents[2])
 DATA = os.path.join(WS, "data", "raw", "RDD2022", "RDD2022")
 OUT_DIR = os.path.join(WS, "reports", "phase20")
 COUNTRIES = ["China_Drone", "China_MotorBike", "Czech", "India",

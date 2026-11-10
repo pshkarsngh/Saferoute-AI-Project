@@ -41,7 +41,11 @@ class TestEndToEndPipeline(unittest.TestCase):
             # Fallback to test split
             test_txt = WORKSPACE_ROOT / "data" / "splits" / "test.txt"
             with open(test_txt, "r") as f:
-                cls.sample_images = [Path(line.strip()) for line in f if line.strip()][:5]
+                # Split lines are workspace-relative since the P0 portability
+                # repair; resolve them against the workspace root, not CWD.
+                cls.sample_images = [
+                    WORKSPACE_ROOT / line.strip() for line in f if line.strip()
+                ][:5]
 
     def test_pipeline_real_image_inference_to_score(self):
         """End-to-end: Real road image -> Preprocessing -> Detection -> Aggregation -> Risk Scoring."""

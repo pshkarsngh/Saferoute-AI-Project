@@ -2,13 +2,16 @@
 # Phase ID: PHASE_07 / PHASE_08
 # Follows TRD §5.3, TRAINING_RULES.md §2 G13, and master_rules.md Rules 1, 4, 5, 15
 
-# Dataset root directory
-path: D:/New folder (3)/data/pothole_crack_manhole/data
+# Dataset root directory (P0 portability repair: workspace-relative, not an
+# absolute D:/New folder (3) path). Ultralytics resolves `path` and the split
+# entries relative to the current working directory, which for every SafeRoute
+# script is the workspace root.
+path: .
 
-# Split files
-train: D:/New folder (3)/data/splits/train.txt
-val: D:/New folder (3)/data/splits/val.txt
-test: D:/New folder (3)/data/splits/test.txt
+# Split files (workspace-relative; run scripts from the workspace root)
+train: data/splits/train.txt
+val: data/splits/val.txt
+test: data/splits/test.txt
 
 # Class mapping (Verified from PHASE_03 audit and confirmed user decision 2026-10-12)
 # Supported classes: 0: pothole, 1: crack

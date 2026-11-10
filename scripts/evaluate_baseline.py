@@ -22,7 +22,9 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-WORKSPACE_ROOT = Path("D:/New folder (3)").resolve()
+# P0 portability repair: derive the workspace root from this file's location
+# (scripts/ -> workspace root) instead of a machine-specific absolute path.
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 
 def compute_sha256(filepath: Path) -> str:
     h = hashlib.sha256()
@@ -46,6 +48,9 @@ def main():
 
     # 1. Workspace isolation check
     verify_path_inside_workspace(Path.cwd(), "Current working directory")
+    # Dataset YAMLs use workspace-relative paths; Ultralytics resolves them
+    # against CWD, so evaluate from the workspace root (P0 portability repair).
+    os.chdir(WORKSPACE_ROOT)
 
     # 2. Checkpoint identification & hash verification
     checkpoint_path = WORKSPACE_ROOT / "models" / "training" / "saferoute-yolo11-v1" / "weights" / "best.pt"
@@ -190,8 +195,10 @@ def main():
     print("GENERATING QUALITATIVE HUMAN REVIEW SAMPLE (20 test images)")
     print("=" * 70)
 
-    test_lines = Path(dataset_cfg["test"]).read_text(encoding="utf-8").splitlines()
-    test_images = [Path(line.strip()) for line in test_lines if line.strip()]
+    test_lines = (WORKSPACE_ROOT / dataset_cfg["test"]).read_text(encoding="utf-8").splitlines()
+    test_images = [
+        WORKSPACE_ROOT / line.strip() for line in test_lines if line.strip()
+    ]
     
     # Pick 20 representative images across the test set (spaced evenly)
     step = max(1, len(test_images) // 20)

@@ -11,7 +11,8 @@ Run:  .\.venv\Scripts\python.exe scripts\verify_yolo_opencv.py
 import os, sys, json, glob, hashlib, traceback
 from datetime import datetime, timezone
 
-WS = r"D:\New folder (3)"
+# P0 portability repair: workspace root is derived from this file (scripts/).
+WS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if WS not in sys.path:
     sys.path.insert(0, WS)
 

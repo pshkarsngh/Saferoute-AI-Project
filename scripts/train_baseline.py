@@ -20,7 +20,9 @@ import subprocess
 from pathlib import Path
 from datetime import datetime, timezone
 
-WORKSPACE_ROOT = Path("D:/New folder (3)").resolve()
+# P0 portability repair: derive the workspace root from this file's location
+# (scripts/ -> workspace root) instead of a machine-specific absolute path.
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 
 class TeeLogger:
     """Duplicates stdout/stderr to a log file."""
@@ -80,6 +82,9 @@ def main():
     # 1. Verify workspace isolation
     current_cwd = Path.cwd().resolve()
     verify_path_inside_workspace(current_cwd, "Current working directory")
+    # Dataset YAMLs use workspace-relative paths; Ultralytics resolves them
+    # against CWD, so train from the workspace root (P0 portability repair).
+    os.chdir(WORKSPACE_ROOT)
     print(f"[VERIFIED] Workspace root: {WORKSPACE_ROOT}")
 
     # 2. Load configurations

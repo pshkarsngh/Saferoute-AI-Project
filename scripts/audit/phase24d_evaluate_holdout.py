@@ -44,7 +44,8 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
-WORKSPACE_ROOT = Path("D:/New folder (3)").resolve()
+# P0 portability repair: workspace root derived from this file (scripts/audit/).
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 OUT_ROOT = WORKSPACE_ROOT / "reports" / "phase24d"
 
 DATASET_V2_YAML = WORKSPACE_ROOT / "data" / "dataset_v2.yaml"
@@ -120,7 +121,13 @@ def capture_date(stem: str) -> str | None:
 
 def split_lines(name: str) -> list[str]:
     p = SPLITS_V2 / f"{name}.txt"
-    return [l.strip() for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+    lines = [l.strip() for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+    # P0 portability repair: split entries are workspace-relative now, so make
+    # them absolute before any filesystem checks.
+    return [
+        str(l if Path(l).is_absolute() else (WORKSPACE_ROOT / l).resolve())
+        for l in lines
+    ]
 
 
 def parse_boxes(label_path: Path) -> list[tuple[int, float, float, float, float]]:

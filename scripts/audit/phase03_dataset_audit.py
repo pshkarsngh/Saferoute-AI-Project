@@ -22,6 +22,7 @@ import hashlib
 import random
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import cv2
@@ -29,7 +30,8 @@ import cv2
 # ----------------------------------------------------------------------------
 # Configuration
 # ----------------------------------------------------------------------------
-WS        = r"D:\New folder (3)"
+# P0 portability repair: workspace root derived from this file (scripts/audit/).
+WS        = str(Path(__file__).resolve().parents[2])
 DATA      = os.path.join(WS, "data", "pothole_crack_manhole", "data")
 IMG_DIR   = os.path.join(DATA, "images")
 YOLO_DIR  = os.path.join(DATA, "labels-YOLO")

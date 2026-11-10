@@ -26,7 +26,9 @@ from src.risk import (
     compute_iou,
 )
 
-WORKSPACE_ROOT = Path("D:/New folder (3)").resolve()
+# P0 portability repair: workspace root derived from this test file
+# (tests/unit/ -> workspace root) instead of a machine-specific absolute path.
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = WORKSPACE_ROOT / "config" / "hazard_severity.yaml"
 
 

@@ -61,7 +61,8 @@ import cv2
 # --------------------------------------------------------------------------- #
 # paths / constants
 # --------------------------------------------------------------------------- #
-WORKSPACE = Path(r"D:\New folder (3)")
+# P0 portability repair: derive the workspace root from this file (scripts/).
+WORKSPACE = Path(__file__).resolve().parent.parent
 SRC_ROOT = WORKSPACE / "DATA-YOLO" / "Datasets" / "dataset" / "dataset"
 PREP = WORKSPACE / "data" / "datayolo_prep"
 PREP_IMAGES = PREP / "images"

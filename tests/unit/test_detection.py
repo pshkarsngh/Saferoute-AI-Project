@@ -22,7 +22,9 @@ from src.detection import (
     SUPPORTED_CLASSES,
 )
 
-WORKSPACE_ROOT = Path("D:/New folder (3)").resolve()
+# P0 portability repair: workspace root derived from this test file
+# (tests/unit/ -> workspace root) instead of a machine-specific absolute path.
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
 VALID_TEST_IMAGE = WORKSPACE_ROOT / "data" / "pothole_crack_manhole" / "data" / "images" / "20250216_164521.jpg"
 APPROVED_CHECKPOINT = WORKSPACE_ROOT / "models" / "training" / "saferoute-yolo11-v1" / "weights" / "best.pt"
 
