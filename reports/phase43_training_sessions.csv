@@ -1,0 +1,7 @@
+session_id,session_id_quality,verified,split,image_count,capture_date,camera_ids,route_ids,evidence
+dateproxy-2025-02-16,filename_date_proxy,false,val,3,2025-02-16,,,data/splits_v2/split_manifest.csv filename-derived capture_date
+dateproxy-2025-02-18,filename_date_proxy,false,train,579,2025-02-18,,,data/splits_v2/split_manifest.csv filename-derived capture_date
+dateproxy-2025-02-19,filename_date_proxy,false,train,819,2025-02-19,,,data/splits_v2/split_manifest.csv filename-derived capture_date
+dateproxy-2025-02-23,filename_date_proxy,false,val,39,2025-02-23,,,data/splits_v2/split_manifest.csv filename-derived capture_date
+dateproxy-2025-02-26,filename_date_proxy,false,test,216,2025-02-26,,,data/splits_v2/split_manifest.csv filename-derived capture_date
+dateproxy-2025-03-16,filename_date_proxy,false,val,136,2025-03-16,,,data/splits_v2/split_manifest.csv filename-derived capture_date

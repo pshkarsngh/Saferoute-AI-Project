@@ -86,6 +86,37 @@ class AnalysisStore:
         finally:
             conn.close()
 
+    def register_model_version(self, identity: Dict[str, Any]) -> Optional[str]:
+        """Record the resolved checkpoint identity for auditability (Rule 17).
+
+        The row id is the effective ``model_version`` already stamped on every
+        analysis, so a stored analysis can be joined back to the exact artifact
+        identity (hash, status, path) that produced it. Registration is
+        idempotent and never asserts a validation state the resolver did not.
+        """
+        version = str(identity.get("model_version") or "").strip()
+        if not version:
+            return None
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._connect()
+        try:
+            conn.execute(
+                "INSERT OR REPLACE INTO model_versions "
+                "(id, name, checkpoint_path, trained_at, metrics_json) "
+                "VALUES (?,?,?,?,?)",
+                (
+                    version,
+                    str(identity.get("status") or ""),
+                    str(identity.get("checkpoint_path") or ""),
+                    None,
+                    json.dumps({"identity": identity, "registered_at": now}),
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return version
+
     def save_analysis(self, analysis: Dict[str, Any]) -> str:
         analysis_id = analysis["analysis_id"]
         now = datetime.now(timezone.utc).isoformat()

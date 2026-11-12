@@ -8,6 +8,24 @@
 > **Companion rules:** [`../master_rules.md`](../master_rules.md) (authoritative)
 > **Related documents (planned):** `TRD.md`, `ARCHITECTURE.md`, `TRAINING_RULES.md`
 
+> **Implementation status (2026-11-11):** This is the original design
+> specification. The system is now implemented and runnable. See
+> [`../README.md`](../README.md) and the Phase 44–46 reports under
+> [`../reports/`](../reports/). Statements below that describe a component as
+> "not implemented" reflect the drafting-time state, not the current state.
+>
+> **Active workspace:** `D:\COde\Major project\Saferoute-AI-Project`. The
+> `D:\New folder (3)` path in the header is historical and is raised here
+> explicitly rather than silently overridden (`master_rules.md` Rule 1).
+>
+> **Current validation status:** the canonical detector checkpoint is a
+> non-production **P0 smoke substitute** (`SMOKE_SUBSTITUTE`, `validated: false`);
+> the genuine `saferoute-yolo11-v2` artifact is absent; independent evaluation is
+> **`NOT_ASSESSED`**; and **no detector accuracy or safety claim is made**. The
+> deterministic risk engine, routing, geocoding, facilities, imagery,
+> persistence and grounded-LLM layers are implemented and covered by the
+> automated test suite.
+
 This PRD is subordinate to `master_rules.md`. Where the two conflict, `master_rules.md`
 prevails and the conflict must be raised and resolved explicitly. This document describes
 **intended product behavior**. It does not claim that any component is implemented,

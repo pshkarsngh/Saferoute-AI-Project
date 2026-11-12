@@ -91,25 +91,25 @@ class TestEndToEndApi(unittest.TestCase):
 
     def test_negative_missing_imagery_is_unassessed(self):
         base = self._server(imagery_adapter=AllMissingImageryProvider())
-        _, rec = self._post(base, "/api/analyze", {"destination": DEST})
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
         self.assertEqual(rec["status"], "unassessed")
         self.assertIsNone(rec["recommendation"])
 
     def test_negative_routing_failure_no_fabricated_routes(self):
         base = self._server(routing_provider=FailingRoutingProvider(), imagery_adapter=AllMissingImageryProvider())
-        _, rec = self._post(base, "/api/analyze", {"destination": DEST})
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
         self.assertEqual(rec["status"], "failed")
         self.assertEqual(rec["routes"], [])
 
     def test_negative_empty_detections_distinct_from_safe(self):
         base = self._server(imagery_adapter=HalfImageryProvider())
-        _, rec = self._post(base, "/api/analyze", {"destination": DEST})
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
         _, hz = self._get(base, f"/api/analysis/{rec['analysis_id']}/hazards")
         self.assertEqual(hz["hazards_count"], 0)  # no hazards reported, not a safe-road claim
 
     def test_explanation_fallback_when_llm_unavailable(self):
         base = self._server(imagery_adapter=HalfImageryProvider())
-        _, rec = self._post(base, "/api/analyze", {"destination": DEST})
+        _, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination": DEST})
         self.assertEqual(rec["explanation"]["source"], "fallback")
 
     def test_facilities_endpoint_is_separate_from_score(self):
@@ -142,7 +142,7 @@ class TestEndToEndApi(unittest.TestCase):
 
     def test_analyze_accepts_place_name_destination(self):
         base = self._server(imagery_adapter=HalfImageryProvider())
-        code, rec = self._post(base, "/api/analyze", {"destination_query": "Koramangala"})
+        code, rec = self._post(base, "/api/analyze", {"origin": ORIGIN, "destination_query": "Koramangala"})
         self.assertEqual(code, 200)
         self.assertEqual(rec["destination"]["latitude"], 12.9352)
 

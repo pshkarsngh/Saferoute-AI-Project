@@ -1,0 +1,228 @@
+{
+  "phase": "PHASE_42",
+  "audit": "independent_dataset_leakage",
+  "status": "NOT_ASSESSED",
+  "generated_utc": "2026-11-10T08:31:54.912068+00:00",
+  "git": {
+    "commit": "b3ee84fc2f2de50eb1fdba6d48d8729179ed49f0",
+    "branch": "main",
+    "dirty": true,
+    "status_porcelain": [
+      "?? scripts/audit/phase42_p1_artifact_audit.py",
+      "?? src/evaluation/artifact_audit.py",
+      "?? tests/unit/test_artifact_audit.py"
+    ]
+  },
+  "target_dataset": {
+    "path": "data/independent",
+    "exists": false,
+    "layout_complete": false,
+    "missing_components": [
+      "dataset.yaml",
+      "images/test",
+      "labels/test",
+      "manifests/independent_manifest.json"
+    ],
+    "image_count": 0,
+    "label_count": 0,
+    "missing_label_count": 0,
+    "session_manifest_present": false,
+    "training_session_manifest_present": false,
+    "manifest_present": false,
+    "manifest_error": null,
+    "manifest_keys": [],
+    "annotation_version": null,
+    "provenance_present": false,
+    "quality_control_present": false,
+    "independence_established": false
+  },
+  "reference_corpus": {
+    "derived_corpus": {
+      "path": "data/derived_2class",
+      "image_count": 2009,
+      "label_count": 1792,
+      "split_counts": {
+        "train": 1398,
+        "val": 178,
+        "test": 216,
+        "quarantined": 212
+      },
+      "source_note": "Same-source CC BY 4.0 dashcam data; derived two-class labels. Not independent evidence for Phase 42."
+    },
+    "source_corpus": {
+      "path": "data/pothole_crack_manhole/data",
+      "image_count": 2009,
+      "label_count": 2009
+    },
+    "split_manifest": {
+      "path": "data/splits_v2/split_manifest.csv",
+      "exists": true,
+      "row_count": 2009,
+      "columns": [
+        "stem",
+        "capture_date",
+        "split",
+        "kept",
+        "exclude_reason",
+        "n_pothole_src",
+        "n_crack_src",
+        "n_manhole_dropped",
+        "n_zero_area_dropped",
+        "sha256_image",
+        "keeper_of"
+      ],
+      "has_session_id_column": false,
+      "has_capture_date_column": true,
+      "unique_capture_dates_by_split": {
+        "quarantine": [
+          "UNKNOWN"
+        ],
+        "test": [
+          "2025-02-26"
+        ],
+        "train": [
+          "2025-02-18",
+          "2025-02-19"
+        ],
+        "val": [
+          "2025-02-16",
+          "2025-02-23",
+          "2025-03-16"
+        ]
+      },
+      "capture_dates_spanning_multiple_splits": [],
+      "date_atomic_proxy_passed": true,
+      "limitation": "capture_date is a filename-derived session proxy, not a verified collection-session identity. It cannot prove video/camera/geography separation from an external independent corpus."
+    },
+    "reference_session_registry_present": false,
+    "distance_metadata_present": false,
+    "route_metadata_present": false,
+    "independence_established": false
+  },
+  "candidate_corpus": {
+    "path": "data/imagery/mapillary",
+    "image_count": 98,
+    "label_count": 0,
+    "annotated": false,
+    "independent_manifest_present": false,
+    "session_manifest_present": false,
+    "source": "Mapillary",
+    "licence": "CC-BY-SA 4.0 per config/imagery.yaml; per-image attribution/licence has not been re-verified in this audit.",
+    "usable_as_independent_evidence": false,
+    "reason": "No ground-truth annotations, no annotation policy/QC, no session manifest, and the corpus is far below the 1,500-3,000 image target."
+  },
+  "checks": [
+    {
+      "check": "independent_dataset_present",
+      "status": "NOT_ASSESSED",
+      "detail": "data/independent/ is absent or missing required components: ['dataset.yaml', 'images/test', 'labels/test', 'manifests/independent_manifest.json']",
+      "executed": true
+    },
+    {
+      "check": "independent_session_metadata",
+      "status": "NOT_ASSESSED",
+      "detail": "No collection_sessions.csv with verified session ids.",
+      "executed": true
+    },
+    {
+      "check": "reference_session_registry",
+      "status": "NOT_ASSESSED",
+      "detail": "No training_sessions.csv reference-session registry. The local split_manifest.csv has capture_date but no session_id column.",
+      "executed": true
+    },
+    {
+      "check": "same_source_split_date_atomicity",
+      "status": "PASS",
+      "detail": "Local derived split is date-atomic under the filename-derived proxy, but this is same-source data and not independent evidence.",
+      "executed": true
+    },
+    {
+      "check": "exact_and_perceptual_hash_probe_of_candidate_corpus",
+      "status": "PASS",
+      "detail": "Exploratory only: compares cached Mapillary candidates with the local same-source reference corpus.",
+      "executed": true
+    },
+    {
+      "check": "independent_leakage_clearance",
+      "status": "NOT_ASSESSED",
+      "detail": "Cannot run session/camera/route/reference leakage clearance without independent labels, sessions and a reference registry.",
+      "executed": true
+    }
+  ],
+  "candidate_overlap_probe": {
+    "candidate_count": 98,
+    "reference_count": 2009,
+    "max_hamming_distance": 8,
+    "exact_match_count": 0,
+    "near_match_pair_count": 0,
+    "near_match_candidate_count": 0,
+    "near_match_reference_count": 0,
+    "exact_match_examples": [],
+    "near_match_examples": [],
+    "candidate_internal_near_duplicate_group_count": 7,
+    "candidate_internal_near_duplicate_image_count": 18,
+    "candidate_internal_near_duplicate_groups": [
+      [
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1447303987025124.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1908685840011750.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\897555642987344.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\904517965811265.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\908840051996067.jpg"
+      ],
+      [
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1653058646064785.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1939380327455671.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\2322923004874620.jpg"
+      ],
+      [
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1175149181180082.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1273037678053823.jpg"
+      ],
+      [
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1220857116927271.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\920198037165485.jpg"
+      ],
+      [
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1307186540805646.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1410709507756669.jpg"
+      ],
+      [
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\1477427717268875.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\26249979104598522.jpg"
+      ],
+      [
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\483780246159852.jpg",
+        "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\imagery\\mapillary\\906765733513623.jpg"
+      ]
+    ],
+    "internal_grouping_skipped": false,
+    "elapsed_seconds": 6.038,
+    "methods": [
+      "sha256_exact_file_hash",
+      "dct_64bit_perceptual_hash",
+      "hamming_distance_le_8"
+    ],
+    "interpretation": "A clean probe means these candidate images do not overlap the local reference corpus. It does not make them independent evaluation data: they remain unannotated and lack session/provenance/QC evidence."
+  },
+  "independence_established": false,
+  "leakage_clearance_established": false,
+  "methods": [
+    "sha256_exact_hash",
+    "dct_64bit_perceptual_hash",
+    "hamming_distance_le_8",
+    "capture_date_split_proxy"
+  ],
+  "limitations": [
+    "The only locally labelled corpus is same-source and cannot serve as an independent benchmark.",
+    "The cached Mapillary corpus is unannotated and has no session/QC manifest.",
+    "No complete training-session registry exists, so reference separation is unprovable.",
+    "Adjacent video frames are never treated as independent observations."
+  ],
+  "blockers": [
+    "independent_dataset_missing",
+    "independent_annotation_manifest_missing",
+    "reference_training_session_manifest_missing",
+    "no_verified_session_ids"
+  ],
+  "safety_note": "No leakage clearance is claimed. A clean probe of unlabelled candidates does not establish dataset independence."
+}

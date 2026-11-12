@@ -25,6 +25,7 @@ from src.detection.schemas import (
     DetectionStatus,
     ImageDetectionResult,
 )
+from src.detection.model_identity import resolve_checkpoint_identity
 
 __version__ = "detect-v2"
 MODEL_VERSION = "saferoute-yolo11-v2"
@@ -103,7 +104,17 @@ class HazardDetector:
         # (src/detection/schemas.py: "Checkpoint model identifier"), not merely
         # the configured serving release. This keeps explicitly-supplied
         # checkpoints (e.g. the v1 model) correctly labelled.
-        self.model_version = self._resolve_model_version()
+        self.declared_model_version = self._resolve_model_version()
+        # PHASE_44: identity is resolved from the checkpoint hash + P0 smoke
+        # marker. A smoke substitute is never exposed as genuine v1/v2.
+        self.model_identity = resolve_checkpoint_identity(
+            self.checkpoint_path,
+            declared_model_version=self.declared_model_version,
+            workspace_root=self.workspace_root,
+        )
+        self.model_version = self.model_identity.model_version
+        self.model_status = self.model_identity.status
+        self.detection_validated = self.model_identity.validated
 
         # Workspace isolation verification (Rule 1)
         self._verify_workspace_path(self.checkpoint_path, "Checkpoint path")

@@ -1,0 +1,68 @@
+{
+  "post_edit": {
+    "backup": null,
+    "files": {
+      "frontend/assets/index-8Yk7qkrm.js": {
+        "bytes": 1583722,
+        "sha256": "E526107324B2AB596C2FD59FACBD76F5519275F72FCD34ED5A856A580B67C194"
+      },
+      "frontend/assets/index-ByRfyWku.js": {
+        "bytes": 1585722,
+        "sha256": "86E3A02E492EEEDA78DA4A230182FECD3AF337B29B3692D0F03FB784F72917A9"
+      },
+      "frontend/assets/index-C1Ss530D.js": {
+        "bytes": 1581809,
+        "sha256": "5437B7DAAF83F6FDBDABDF32214A87E7EEFA23E4C7D0FA77A3841E1E6A33523C"
+      },
+      "frontend/assets/index-CXsvefbt.js": {
+        "bytes": 1587479,
+        "sha256": "31A0F35FA4F6FA4077FE6CA7CA75E8C557C533E0FD379284199CEF2847824C1B"
+      },
+      "frontend/assets/index-uv_siPAM.js": {
+        "bytes": 1585108,
+        "sha256": "C012348B8A42F479A76F867163CC432261BE48EA757E6A69D49399D94E3645D5"
+      },
+      "frontend/index.html": {
+        "bytes": 572,
+        "sha256": "DAABE733D9971A2D7BBEC2C42E2EC92F8FEF96EF3A22D44F2F27B8D5ACDA7BF1"
+      },
+      "frontend/model-status.js": {
+        "bytes": 2865,
+        "sha256": "E9FA4DFDBCA528E23224E561B4BEF1F101F49235E60C9C683B24C1B02F4BB3E9"
+      }
+    }
+  },
+  "pre_edit": {
+    "backup": "frontend/backup/phase44_pre_edit",
+    "files": {
+      "frontend/assets/index-8Yk7qkrm.js": {
+        "bytes": 1583722,
+        "sha256": "E526107324B2AB596C2FD59FACBD76F5519275F72FCD34ED5A856A580B67C194"
+      },
+      "frontend/assets/index-ByRfyWku.js": {
+        "bytes": 1585722,
+        "sha256": "86E3A02E492EEEDA78DA4A230182FECD3AF337B29B3692D0F03FB784F72917A9"
+      },
+      "frontend/assets/index-C1Ss530D.js": {
+        "bytes": 1581809,
+        "sha256": "5437B7DAAF83F6FDBDABDF32214A87E7EEFA23E4C7D0FA77A3841E1E6A33523C"
+      },
+      "frontend/assets/index-CXsvefbt.js": {
+        "bytes": 1585746,
+        "sha256": "9C160BC10C209ABEF6DC3D7E24B553A6611E85DDEEA200A72CB61B00AAF5882C"
+      },
+      "frontend/assets/index-uv_siPAM.js": {
+        "bytes": 1585108,
+        "sha256": "C012348B8A42F479A76F867163CC432261BE48EA757E6A69D49399D94E3645D5"
+      },
+      "frontend/index.html": {
+        "bytes": 572,
+        "sha256": "DAABE733D9971A2D7BBEC2C42E2EC92F8FEF96EF3A22D44F2F27B8D5ACDA7BF1"
+      },
+      "frontend/model-status.js": {
+        "bytes": 2865,
+        "sha256": "E9FA4DFDBCA528E23224E561B4BEF1F101F49235E60C9C683B24C1B02F4BB3E9"
+      }
+    }
+  }
+}

@@ -24,6 +24,7 @@ and API run from a single process (real-life single-command startup).
 from __future__ import annotations
 
 import json
+import math
 import mimetypes
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -39,24 +40,87 @@ from src.routing.schemas import Coordinate
 
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
 
+#: Deployment hardening (audit F-12): reject oversized request bodies before
+#: buffering them into memory. The largest legitimate payload is a facilities
+#: request carrying a few route polylines, well below 1 MiB.
+MAX_REQUEST_BYTES = 1_048_576
 
-def _parse_coord(value: Any) -> Optional[Coordinate]:
-    try:
-        if isinstance(value, dict) and "latitude" in value and "longitude" in value:
-            lat = float(value["latitude"])
-            lon = float(value["longitude"])
-            if lat < -90.0 or lat > 90.0 or lon < -180.0 or lon > 180.0:
-                return None
-            return Coordinate(latitude=lat, longitude=lon)
-        if isinstance(value, (list, tuple)) and len(value) == 2:
-            lat = float(value[0])
-            lon = float(value[1])
-            if lat < -90.0 or lat > 90.0 or lon < -180.0 or lon > 180.0:
-                return None
-            return Coordinate(latitude=lat, longitude=lon)
-    except (TypeError, ValueError):
+#: Applied to every response. These are safe for the single-origin local demo
+#: and for a reverse-proxied deployment; they do not change any safety logic.
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+}
+
+
+class CoordinateValidationError(ValueError):
+    """A supplied coordinate is malformed or outside the valid WGS-84 range."""
+
+    def __init__(self, message: str, detail: str = ""):
+        super().__init__(message)
+        self.message = message
+        self.detail = detail
+
+
+def _parse_coord(value: Any, field_name: str = "coordinate") -> Optional[Coordinate]:
+    """Strictly parse a WGS-84 coordinate.
+
+    Returns ``None`` only when no coordinate value was supplied. A supplied but
+    malformed or out-of-range value raises :class:`CoordinateValidationError` so
+    the API can return HTTP 400 instead of silently substituting a default.
+    """
+    if value is None:
         return None
-    return None
+
+    if isinstance(value, dict):
+        if "latitude" not in value or "longitude" not in value:
+            raise CoordinateValidationError(
+                f"'{field_name}' must contain both 'latitude' and 'longitude'.",
+                f"received keys: {sorted(str(k) for k in value.keys())}",
+            )
+        raw_lat, raw_lon = value.get("latitude"), value.get("longitude")
+        kind = "object"
+    elif isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise CoordinateValidationError(
+                f"'{field_name}' must be a [latitude, longitude] pair.",
+                f"received {len(value)} value(s)",
+            )
+        raw_lat, raw_lon = value[0], value[1]
+        kind = "pair"
+    else:
+        raise CoordinateValidationError(
+            f"'{field_name}' must be an object with latitude/longitude or a "
+            "[latitude, longitude] pair.",
+            f"received {type(value).__name__}",
+        )
+
+    try:
+        lat = float(raw_lat)
+        lon = float(raw_lon)
+    except (TypeError, ValueError):
+        raise CoordinateValidationError(
+            f"'{field_name}' latitude and longitude must be numbers.",
+            f"received latitude={raw_lat!r}, longitude={raw_lon!r}",
+        ) from None
+
+    if not math.isfinite(lat) or not math.isfinite(lon):
+        raise CoordinateValidationError(
+            f"'{field_name}' latitude and longitude must be finite numbers.",
+            f"received latitude={lat!r}, longitude={lon!r}",
+        )
+    if lat < -90.0 or lat > 90.0:
+        raise CoordinateValidationError(
+            f"'{field_name}' latitude must be between -90 and 90 degrees.",
+            f"received latitude={lat}",
+        )
+    if lon < -180.0 or lon > 180.0:
+        raise CoordinateValidationError(
+            f"'{field_name}' longitude must be between -180 and 180 degrees.",
+            f"received longitude={lon}",
+        )
+    return Coordinate(latitude=lat, longitude=lon)
 
 
 def _error(code: str, message: str, detail: str = "") -> Dict[str, Any]:
@@ -77,13 +141,36 @@ class SafeRouteAPI:
         self.pipeline = pipeline or build_pipeline(self.settings)
         self.store = store or AnalysisStore()
         self.geocoder = geocoder if geocoder is not None else build_geocoder(self.settings)
+        # PHASE_47: the address the server is actually bound to. `settings.port`
+        # is the configured default and may be overridden on the command line,
+        # so reporting only the setting would misstate the live endpoint.
+        self.effective_host: Optional[str] = None
+        self.effective_port: Optional[int] = None
+        # PHASE_47: persist the resolved checkpoint identity so every stored
+        # analysis can be joined back to the artifact (hash/status/path) that
+        # produced it. This is provenance only and never changes a score.
+        try:
+            self.store.register_model_version(self.pipeline.model_identity.to_dict())
+        except Exception:  # noqa: BLE001 - provenance must never block startup
+            pass
 
     # ------------------------------------------------------------------ #
     def health(self) -> Tuple[int, Dict[str, Any]]:
+        identity = self.pipeline.model_identity
         return 200, {
             "status": "ok",
             "model_version": self.pipeline.model_version,
+            "model_status": self.pipeline.model_status,
+            "detection_validated": self.pipeline.detection_validated,
+            "model_identity": identity.to_dict(),
             "config_hash": self.pipeline.config_hash,
+            "effective_bind": {
+                "host": self.effective_host or self.settings.host,
+                "port": self.effective_port or self.settings.port,
+            },
+            "llm_fallback_count": int(
+                getattr(self.pipeline.explainer, "fallback_count", 0)
+            ),
             "providers": {
                 "routing": getattr(self.pipeline.routing, "provider_name", "unknown"),
                 "imagery": getattr(self.pipeline.imagery, "provider_name", "unknown"),
@@ -99,7 +186,43 @@ class SafeRouteAPI:
         }
 
     def config(self) -> Tuple[int, Dict[str, Any]]:
-        return 200, {"status": "ok", "settings": self.settings.to_safe_dict()}
+        identity = self.pipeline.model_identity
+        return 200, {
+            "status": "ok",
+            "model_version": self.pipeline.model_version,
+            "model_status": self.pipeline.model_status,
+            "detection_validated": self.pipeline.detection_validated,
+            "model_identity": identity.to_dict(),
+            # Configured defaults (may be overridden by the launcher).
+            "settings": self.settings.to_safe_dict(),
+            # The endpoint the process is actually serving on.
+            "effective_bind": {
+                "host": self.effective_host or self.settings.host,
+                "port": self.effective_port or self.settings.port,
+            },
+        }
+
+    def runtime_config_js(self) -> str:
+        """Return same-origin/overridable browser configuration as JavaScript.
+
+        The default is an empty ``apiBaseUrl``, which makes the built frontend
+        use relative URLs on whatever host/port serves it. This is what makes
+        the documented ``--port`` option work without rebuilding the bundle.
+        """
+        identity = self.pipeline.model_identity
+        config = {
+            "apiBaseUrl": self.settings.api_base_url or "",
+            "geocodingEnabled": bool(self.settings.geocoding_enabled and self.geocoder),
+            "modelStatus": self.pipeline.model_status,
+            "modelVersion": self.pipeline.model_version,
+            "detectionValidated": bool(self.pipeline.detection_validated),
+            "modelStatusDetail": identity.detail,
+        }
+        payload = json.dumps(config, ensure_ascii=True)
+        return (
+            f"window.SAFEROUTE_CONFIG={payload};"
+            "window.SAFEROUTE_API_BASE_URL=window.SAFEROUTE_CONFIG.apiBaseUrl;"
+        )
 
     # ------------------------------------------------------------------ #
     def _geocode_coordinate(self, query: str) -> Tuple[Optional[Coordinate], Optional[str]]:
@@ -122,24 +245,35 @@ class SafeRouteAPI:
         query_key: str,
         required: bool = True,
         prefer_live_geocode: bool = False,
-    ) -> Tuple[Optional[Coordinate], Optional[str], str]:
+    ) -> Tuple[Optional[Coordinate], Optional[Dict[str, str]], str]:
         """Resolve a location from coordinates or a place-name query.
 
-        Returns ``(coordinate, error, source)``. ``source`` records WHICH input
-        the point came from ("geocoder" or "coordinates") so the response can
+        Returns ``(coordinate, error, source)``. ``error`` is a structured
+        ``{code, message, detail}`` record. ``source`` records WHICH input the
+        point came from ("geocoder" or "coordinates") so the response can
         disclose it instead of silently swapping one for the other (Rule 9).
 
+        A supplied coordinate is validated strictly. It is never silently
+        replaced by a default location or by a geocoder result when malformed.
         When ``prefer_live_geocode`` is set and a place-name query is present,
-        the live geocoder's own point for that name wins over the supplied
-        coordinate: the routing provider is then asked about the real place
-        instead of about an approximate table centroid. The supplied coordinate
-        remains the fallback, so a geocoder outage never fails the request.
+        the live geocoder's own point for that name wins over a valid supplied
+        coordinate, so the routing provider is asked about the real place.
         """
         raw = payload.get(coord_key)
-        coord = _parse_coord(raw)
         query = payload.get(query_key)
         if query is None and isinstance(raw, str):
             query = raw
+
+        coord: Optional[Coordinate] = None
+        if raw is not None and not isinstance(raw, str):
+            try:
+                coord = _parse_coord(raw, coord_key)
+            except CoordinateValidationError as exc:
+                return None, {
+                    "code": "invalid_coordinates",
+                    "message": exc.message,
+                    "detail": exc.detail,
+                }, ""
 
         if (
             prefer_live_geocode
@@ -156,14 +290,29 @@ class SafeRouteAPI:
 
         if query:
             if not self.settings.geocoding_enabled or self.geocoder is None:
-                return None, "Geocoding is disabled on this server; supply {latitude, longitude}.", ""
+                return None, {
+                    "code": "geocoding_disabled",
+                    "message": "Geocoding is disabled on this server; supply {latitude, longitude}.",
+                    "detail": "",
+                }, ""
             resolved, err = self._geocode_coordinate(str(query))
             if resolved is not None:
                 return resolved, None, "geocoder"
-            return None, err, ""
+            return None, {
+                "code": "geocoding_failed",
+                "message": err or f"Could not resolve '{query}'.",
+                "detail": "",
+            }, ""
 
         if required:
-            return None, "location must be {latitude, longitude} or a place name (destination_query).", ""
+            return None, {
+                "code": "missing_location",
+                "message": (
+                    f"'{coord_key}' is required: supply {{latitude, longitude}} "
+                    f"or a place name ({query_key})."
+                ),
+                "detail": "No coordinates and no place-name query were supplied.",
+            }, ""
         return None, None, ""
 
     def geocode(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
@@ -176,6 +325,7 @@ class SafeRouteAPI:
             limit = int(payload.get("limit", 5))
         except (TypeError, ValueError):
             limit = 5
+        limit = max(1, min(10, limit))
         result = self.geocoder.geocode(str(query), limit=limit)
         code = 200 if result.status.value in ("ok", "no_results") else 502
         return code, result.to_dict()
@@ -183,17 +333,23 @@ class SafeRouteAPI:
     def routes(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
         prefer = bool(payload.get("resolve_place_names"))
         origin, err, origin_source = self._resolve_location(
-            payload, "origin", "origin_query", required=False, prefer_live_geocode=prefer)
-        if err:
-            return 400, _error("invalid_request", err)
-        if origin is None:
-            origin = Coordinate(12.9716, 77.5946)
-            origin_source = "default"
+            payload, "origin", "origin_query", required=True, prefer_live_geocode=prefer)
+        if err or origin is None:
+            err = err or {
+                "code": "missing_location",
+                "message": "'origin' is required.",
+                "detail": "",
+            }
+            return 400, _error(err["code"], err["message"], err.get("detail", ""))
         destination, err, destination_source = self._resolve_location(
             payload, "destination", "destination_query", required=True, prefer_live_geocode=prefer)
         if err or destination is None:
-            return 400, _error("invalid_request", err or "destination is required.",
-                               "No geocoding provider resolved the destination.")
+            err = err or {
+                "code": "missing_location",
+                "message": "'destination' is required.",
+                "detail": "No geocoding provider resolved the destination.",
+            }
+            return 400, _error(err["code"], err["message"], err.get("detail", ""))
         result = self.pipeline.resolve_routes(origin, destination)
         result["origin_resolution"] = origin_source
         result["destination_resolution"] = destination_source
@@ -202,17 +358,23 @@ class SafeRouteAPI:
     def analyze(self, payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
         prefer = bool(payload.get("resolve_place_names"))
         origin, err, origin_source = self._resolve_location(
-            payload, "origin", "origin_query", required=False, prefer_live_geocode=prefer)
-        if err:
-            return 400, _error("invalid_request", err)
-        if origin is None:
-            origin = Coordinate(12.9716, 77.5946)
-            origin_source = "default"
+            payload, "origin", "origin_query", required=True, prefer_live_geocode=prefer)
+        if err or origin is None:
+            err = err or {
+                "code": "missing_location",
+                "message": "'origin' is required.",
+                "detail": "",
+            }
+            return 400, _error(err["code"], err["message"], err.get("detail", ""))
         destination, err, destination_source = self._resolve_location(
             payload, "destination", "destination_query", required=True, prefer_live_geocode=prefer)
         if err or destination is None:
-            return 400, _error("invalid_request", err or "destination is required.",
-                               "No geocoding provider resolved the destination.")
+            err = err or {
+                "code": "missing_location",
+                "message": "'destination' is required.",
+                "detail": "No geocoding provider resolved the destination.",
+            }
+            return 400, _error(err["code"], err["message"], err.get("detail", ""))
         record = self.pipeline.analyze(origin, destination)
         record["destination_query"] = payload.get("destination_query")
         record["origin_query"] = payload.get("origin_query")
@@ -311,11 +473,16 @@ class SafeRouteAPI:
 
         loc, err, _source = self._resolve_location(
             payload, "location", "location_query", required=False)
-        if loc is None:
+        if err is None and loc is None:
             loc, err, _source = self._resolve_location(
                 payload, "destination", "destination_query", required=True)
         if err or loc is None:
-            return 400, _error("invalid_request", err or "location must be {latitude, longitude} or a place name.")
+            err = err or {
+                "code": "missing_location",
+                "message": "location must be {latitude, longitude} or a place name.",
+                "detail": "",
+            }
+            return 400, _error(err["code"], err["message"], err.get("detail", ""))
         radius = self._optional_float(payload.get("radius_m"))
         cats = payload.get("categories")
         result = self.pipeline.facilities.get_nearby_facilities(loc.latitude, loc.longitude, radius, cats)
@@ -346,6 +513,20 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        for name, value in _SECURITY_HEADERS.items():
+            self.send_header(name, value)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_js(self, body_text: str):
+        body = body_text.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/javascript; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        for name, value in _SECURITY_HEADERS.items():
+            self.send_header(name, value)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -376,6 +557,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype or "application/octet-stream")
         self.send_header("Access-Control-Allow-Origin", "*")
+        for name, value in _SECURITY_HEADERS.items():
+            self.send_header(name, value)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -397,6 +580,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype or "text/html")
         self.send_header("Access-Control-Allow-Origin", "*")
+        for name, value in _SECURITY_HEADERS.items():
+            self.send_header(name, value)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -409,6 +594,9 @@ class _Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
         parts = [p for p in path.split("/") if p]
         if not path.startswith("/api"):
+            if path == "/runtime-config.js":
+                self._send_js(self.api.runtime_config_js())
+                return
             if self.static_dir and self._serve_static(path):
                 return
             # SPA fallback for client-side routes (history API refresh/direct nav)
@@ -441,6 +629,24 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?", 1)[0].rstrip("/")
+        try:
+            length = int(self.headers.get("Content-Length", 0) or 0)
+        except (TypeError, ValueError):
+            length = -1
+        if length < 0:
+            self._send(400, _error("invalid_request", "Invalid Content-Length header.", ""))
+            return
+        if length > MAX_REQUEST_BYTES:
+            # Do not read the body: reject before buffering it into memory.
+            self._send(
+                413,
+                _error(
+                    "payload_too_large",
+                    f"Request body exceeds the {MAX_REQUEST_BYTES} byte limit.",
+                    f"received Content-Length={length}",
+                ),
+            )
+            return
         payload = self._read_json()
         try:
             if path == "/api/routes":
@@ -467,7 +673,11 @@ def create_server(host: str = "127.0.0.1", port: int = 8000, api: SafeRouteAPI =
     elif api is not None:
         from src.config.env import WORKSPACE_ROOT as _WS
         _Handler.static_dir = (_WS / api.settings.static_dir)
-    return ThreadingHTTPServer((host, port), _Handler)
+    server = ThreadingHTTPServer((host, port), _Handler)
+    # Record the actual bound address (port 0 becomes an ephemeral port).
+    api.effective_host = host
+    api.effective_port = server.server_address[1]
+    return server
 
 
 def main():

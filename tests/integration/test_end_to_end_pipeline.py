@@ -63,9 +63,12 @@ class TestEndToEndPipeline(unittest.TestCase):
 
         # Step 2: YOLO11 Hazard Detection
         det_result = self.detector.detect(test_img_path, image_id="img_e2e_01")
-        # HazardDetector() loads the promoted v2 checkpoint via
-        # config/detection.yaml; model_version identifies the loaded checkpoint.
-        self.assertEqual(det_result.model_version, "saferoute-yolo11-v2")
+        # PHASE_44 truthful model identity: the serving checkpoint is the P0
+        # smoke substitute; it must never be presented as genuine v2.
+        self.assertEqual(det_result.model_version, "p0-smoke-substitute")
+        self.assertEqual(self.detector.model_status, "SMOKE_SUBSTITUTE")
+        self.assertFalse(self.detector.detection_validated)
+        self.assertEqual(self.detector.declared_model_version, "saferoute-yolo11-v2")
         self.assertIn(det_result.status, [DetectionStatus.SUCCESS, DetectionStatus.NO_DETECTIONS])
 
         # Step 3: Severity Policy & Aggregation

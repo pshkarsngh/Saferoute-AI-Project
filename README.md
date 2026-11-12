@@ -2,7 +2,9 @@
 
 Intelligent road-safety navigation: it compares the routes a routing provider
 actually returns, detects road hazards on **permitted** imagery with a YOLO11
-detector, converts verified evidence into a **deterministic hazard-risk score**,
+detector (currently a non-validated P0 smoke substitute — see
+[Known limitations](#known-limitations-honest)), converts verified evidence into a
+**deterministic hazard-risk score**,
 and explains the result through a **grounded LLM** (with a deterministic
 fallback).
 
@@ -68,8 +70,18 @@ deterministic fallback explanation is returned. Routing failure is surfaced as
 
 ## Known limitations (honest)
 
-- Detector covers **`pothole`** and **`crack`** only (mAP@0.5 ≈ 0.26 on a single
-  dashcam dataset); other target classes are reported **unsupported**.
+- **Detector status is not production-validated.** The canonical serving path
+  `models/training/saferoute-yolo11-v2/weights/best.pt` currently holds the P0
+  smoke substitute (`P0_SMOKE_SUBSTITUTE.json` present,
+  `sha256 19619F99…B916D0`). The genuine v2 checkpoint is absent, so
+  `/api/health` reports `status: SMOKE_SUBSTITUTE`, `validated: false`, and
+  production analyses suppress recommendations. See
+  `docs/reports/PHASE_42_INDEPENDENT_EVALUATION.md`.
+- Detector covers **`pothole`** and **`crack`** only; other target classes are
+  reported **unsupported**. Historical single-dashcam test metrics
+  (`mAP@0.5 ≈ 0.26`, Phase 24) are **reported, not independently verified**, and
+  conflict with Phase 40's reported `mAP50 0.0423`; no current accuracy claim is
+  made.
 - Metrics are not a global safety guarantee; the deterministic risk engine owns
   all scoring (Rule 7), and the LLM only explains (Rule 12).
 - Imagery is limited to permitted sources; Google Street View is intentionally

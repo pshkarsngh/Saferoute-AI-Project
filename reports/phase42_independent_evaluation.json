@@ -1,0 +1,390 @@
+{
+  "phase": "PHASE_42",
+  "p1_status": "NOT_ASSESSED",
+  "status": "NOT_ASSESSED",
+  "evaluation_executed": false,
+  "harness_only": false,
+  "generated_utc": "2026-11-10T08:31:54.912068+00:00",
+  "git": {
+    "commit": "b3ee84fc2f2de50eb1fdba6d48d8729179ed49f0",
+    "branch": "main",
+    "dirty": true,
+    "status_porcelain": [
+      "?? scripts/audit/phase42_p1_artifact_audit.py",
+      "?? src/evaluation/artifact_audit.py",
+      "?? tests/unit/test_artifact_audit.py"
+    ]
+  },
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "generated_utc": "2026-11-10T08:31:40.966432+00:00",
+    "torch": "2.13.0+cu130",
+    "ultralytics": "8.4.163",
+    "cv2": "4.14.0",
+    "numpy": "2.5.3",
+    "cuda_available": true,
+    "cuda_device": "NVIDIA GeForce RTX 5050 Laptop GPU"
+  },
+  "preflight": {
+    "config": {
+      "detection_config_path": "D:\\COde\\Major project\\Saferoute-AI-Project\\config\\detection.yaml",
+      "severity_config_path": "D:\\COde\\Major project\\Saferoute-AI-Project\\config\\hazard_severity.yaml",
+      "detection_config_sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+      "severity_config_sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473",
+      "model_version": "saferoute-yolo11-v2",
+      "checkpoint": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v2\\weights\\best.pt",
+      "checkpoint_rel": "models/training/saferoute-yolo11-v2/weights/best.pt",
+      "imgsz": 640,
+      "conf": 0.25,
+      "iou": 0.45,
+      "max_det": 300,
+      "supported_classes": {
+        "0": "pothole",
+        "1": "crack"
+      },
+      "unsupported_classes": [
+        "manhole",
+        "damaged_patch",
+        "waterlogging",
+        "uneven_surface",
+        "speed_bump"
+      ],
+      "severity_confidence_threshold": 0.25
+    },
+    "checkpoint": {
+      "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v2\\weights\\best.pt",
+      "exists": true,
+      "sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+      "size_bytes": 5443482,
+      "marker_path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v2\\P0_SMOKE_SUBSTITUTE.json",
+      "marker_status": "NON_PRODUCTION_P0_SMOKE_SUBSTITUTE",
+      "is_smoke_substitute": true
+    },
+    "harness_only": false,
+    "warnings": [
+      "BLOCKED P1 AUDIT: no detector inference was executed and no detector metric is reported.",
+      "The canonical serving path holds the non-production P0 smoke substitute; it is refused for evaluation.",
+      "The configured checkpoint does not match the documented historical v2 SHA-256 B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA.",
+      "data/independent/ is absent or incomplete; independent evaluation cannot be performed."
+    ],
+    "environment": {
+      "python": "3.12.10",
+      "platform": "Windows-11-10.0.26300-SP0",
+      "generated_utc": "2026-11-10T08:31:40.966432+00:00",
+      "torch": "2.13.0+cu130",
+      "ultralytics": "8.4.163",
+      "cv2": "4.14.0",
+      "numpy": "2.5.3",
+      "cuda_available": true,
+      "cuda_device": "NVIDIA GeForce RTX 5050 Laptop GPU"
+    }
+  },
+  "dataset": {
+    "path": "data/independent",
+    "exists": false,
+    "layout_complete": false,
+    "missing_components": [
+      "dataset.yaml",
+      "images/test",
+      "labels/test",
+      "manifests/independent_manifest.json"
+    ],
+    "image_count": 0,
+    "label_count": 0,
+    "missing_label_count": 0,
+    "session_manifest_present": false,
+    "training_session_manifest_present": false,
+    "manifest_present": false,
+    "manifest_error": null,
+    "manifest_keys": [],
+    "annotation_version": null,
+    "provenance_present": false,
+    "quality_control_present": false,
+    "independence_established": false
+  },
+  "leakage": {
+    "status": "NOT_ASSESSED",
+    "audit_path": "reports/phase42_leakage_audit.json",
+    "independence_established": false,
+    "leakage_clearance_established": false
+  },
+  "stage_a": {
+    "ran": false,
+    "status": "not_run",
+    "reason": "Genuine v2 checkpoint and independent annotated dataset are unavailable.",
+    "metrics": null,
+    "per_class_ap50": null,
+    "command": null
+  },
+  "stage_b": {
+    "ran": false,
+    "status": "not_run",
+    "reason": "Production inference was deliberately not executed because the configured checkpoint is not the genuine v2 artifact and no independent dataset exists.",
+    "predictions": null,
+    "images_inferred": null,
+    "images_failed": null,
+    "parity": null
+  },
+  "metrics": {
+    "available": false,
+    "reason": "No inference was executed; no detector metric was measured.",
+    "overall": null,
+    "per_class": null,
+    "operational": null,
+    "uncertainty": null,
+    "confusion_matrix": null,
+    "route_replay": null
+  },
+  "route_replay": null,
+  "gates": [
+    {
+      "gate": "dataset_independence",
+      "status": "NOT_ASSESSED",
+      "detail": "data/independent/ is missing; no session-disjoint provenance, reference-session registry, or independent annotation manifest exists.",
+      "evidence": {
+        "independent_dataset": {
+          "path": "data/independent",
+          "exists": false,
+          "layout_complete": false,
+          "missing_components": [
+            "dataset.yaml",
+            "images/test",
+            "labels/test",
+            "manifests/independent_manifest.json"
+          ],
+          "image_count": 0,
+          "label_count": 0,
+          "missing_label_count": 0,
+          "session_manifest_present": false,
+          "training_session_manifest_present": false,
+          "manifest_present": false,
+          "manifest_error": null,
+          "manifest_keys": [],
+          "annotation_version": null,
+          "provenance_present": false,
+          "quality_control_present": false,
+          "independence_established": false
+        },
+        "reference_corpus": {
+          "split_manifest": {
+            "path": "data/splits_v2/split_manifest.csv",
+            "exists": true,
+            "row_count": 2009,
+            "columns": [
+              "stem",
+              "capture_date",
+              "split",
+              "kept",
+              "exclude_reason",
+              "n_pothole_src",
+              "n_crack_src",
+              "n_manhole_dropped",
+              "n_zero_area_dropped",
+              "sha256_image",
+              "keeper_of"
+            ],
+            "has_session_id_column": false,
+            "has_capture_date_column": true,
+            "unique_capture_dates_by_split": {
+              "quarantine": [
+                "UNKNOWN"
+              ],
+              "test": [
+                "2025-02-26"
+              ],
+              "train": [
+                "2025-02-18",
+                "2025-02-19"
+              ],
+              "val": [
+                "2025-02-16",
+                "2025-02-23",
+                "2025-03-16"
+              ]
+            },
+            "capture_dates_spanning_multiple_splits": [],
+            "date_atomic_proxy_passed": true,
+            "limitation": "capture_date is a filename-derived session proxy, not a verified collection-session identity. It cannot prove video/camera/geography separation from an external independent corpus."
+          },
+          "reference_session_registry_present": false
+        }
+      }
+    },
+    {
+      "gate": "annotation_reliability",
+      "status": "NOT_ASSESSED",
+      "detail": "No independent annotation policy, version, annotator A/B review, or adjudication record exists.",
+      "evidence": {
+        "annotation_version": null,
+        "quality_control_present": false
+      }
+    },
+    {
+      "gate": "reproducibility",
+      "status": "NOT_ASSESSED",
+      "detail": "Checkpoint and config hashes are recorded, but the genuine checkpoint and independent dataset hashes do not exist to freeze.",
+      "evidence": {
+        "checkpoint_matches_expected_v2": false,
+        "expected_v2_sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+        "configured_checkpoint_sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+        "detection_config_sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+        "severity_config_sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473",
+        "dataset_sha256": null,
+        "environment": {
+          "python": "3.12.10",
+          "platform": "Windows-11-10.0.26300-SP0",
+          "generated_utc": "2026-11-10T08:31:40.966432+00:00",
+          "torch": "2.13.0+cu130",
+          "ultralytics": "8.4.163",
+          "cv2": "4.14.0",
+          "numpy": "2.5.3",
+          "cuda_available": true,
+          "cuda_device": "NVIDIA GeForce RTX 5050 Laptop GPU"
+        },
+        "production_config_matches_phase42_pin": true
+      }
+    },
+    {
+      "gate": "metric_completeness",
+      "status": "NOT_ASSESSED",
+      "detail": "Stage B was not run; no detector metric exists.",
+      "evidence": {
+        "stage_b_ran": false,
+        "metrics": null,
+        "per_class_metrics": null
+      }
+    },
+    {
+      "gate": "production_parity",
+      "status": "NOT_ASSESSED",
+      "detail": "Stage B production inference was not run; class handling, confidence preservation and box rescaling cannot be evaluated on the real model.",
+      "evidence": {
+        "stage_a_ran": false,
+        "stage_b_ran": false,
+        "threshold": 0.25,
+        "supported_classes": {
+          "0": "pothole",
+          "1": "crack"
+        }
+      }
+    },
+    {
+      "gate": "decision_impact",
+      "status": "NOT_ASSESSED",
+      "detail": "Ground-truth route replay was not run; no route evidence exists.",
+      "evidence": {
+        "route_replay": null
+      }
+    },
+    {
+      "gate": "safety_honesty",
+      "status": "PASS",
+      "detail": "This is an explicitly blocked audit. It reports no detector accuracy, no route-safety result, and no deployment-readiness claim.",
+      "evidence": {
+        "evaluation_executed": false,
+        "metrics": null
+      }
+    }
+  ],
+  "completion_checklist": {
+    "genuine_v2_checkpoint_provenance_verified": false,
+    "genuine_checkpoint_hash_recorded": false,
+    "independent_dataset_acquired": false,
+    "dataset_annotations_reviewed": false,
+    "dataset_independence_verified": false,
+    "leakage_audit_passed": false,
+    "production_configuration_frozen": true,
+    "stage_a_executed": false,
+    "stage_b_executed": false,
+    "per_class_metrics_measured": false,
+    "confidence_intervals_computed": false,
+    "operational_metrics_reported": false,
+    "route_level_ground_truth_replay_executed": false,
+    "evaluation_artifacts_generated": true,
+    "full_regression_suite_passes": true,
+    "final_technical_report_generated": true,
+    "final_evaluation_status_justified": true
+  },
+  "blockers": [
+    "configured_checkpoint_hash_does_not_match_historical_v2_pin",
+    "p0_smoke_substitute_present_and_refused",
+    "independent_dataset_missing",
+    "independent_session_manifest_missing",
+    "reference_training_session_manifest_missing",
+    "independent_manifest_missing",
+    "independent_annotation_policy_version_a_b_review_and_adjudication_missing",
+    "independent_geography_condition_coverage_unverified",
+    "verified_distance_metadata_missing_so_fp_per_km_unavailable",
+    "route_level_ground_truth_missing_so_replay_not_run"
+  ],
+  "recovery_request": {
+    "required_checkpoint": {
+      "path": "models/training/saferoute-yolo11-v2/weights/best.pt",
+      "expected_sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+      "provenance": [
+        "docs/reports/PHASE_20_rdd2022_verification.md",
+        "docs/reports/PHASE_24D_FRESH_HOLDOUT_EVALUATION.md",
+        "docs/project-audit/06-ml-models-and-algorithms.md",
+        "reports/phase24d/v2_metrics.json",
+        "reports/phase24d/holdout_verification.json"
+      ],
+      "acceptance_rule": "Must be the original serving artifact from the v2 training run. The P0 smoke substitute, YOLO11 pretrained weights, v1 weights, a newly trained model, or an unknown file with a matching name are not acceptable."
+    },
+    "required_dataset": {
+      "path": "data/independent/",
+      "target_images": "1500-3000",
+      "required_layout": [
+        "dataset.yaml",
+        "images/test",
+        "labels/test",
+        "manifests/independent_manifest.json"
+      ],
+      "required_sessions": "collection_sessions.csv and training_sessions.csv",
+      "required_manifest_fields": [
+        "dataset_version",
+        "annotation_version",
+        "provenance",
+        "annotation policy/guideline",
+        "quality_control (annotator_a, annotator_b, adjudication)",
+        "images[] with image_id, file, session_id, condition, route_id, segment_id",
+        "verified distance_km where FP/km is to be reported"
+      ]
+    },
+    "required_annotation_quality": [
+      "documented guideline version",
+      "independent annotator A and B",
+      "adjudicator for disagreements",
+      "verified-negative confirmation for every empty label file",
+      "ambiguity log and resolution status"
+    ],
+    "approval_required": [
+      "Any external dataset download or licence acceptance",
+      "Any new imagery collection",
+      "Annotation labour for A/B review and adjudication"
+    ],
+    "after_recovery_command": ".\\.venv\\Scripts\\python.exe scripts\\evaluate_independent.py --dataset-yaml data/independent/dataset.yaml --manifest data/independent/manifests/independent_manifest.json --reference-sessions data/independent/manifests/training_sessions.csv --reference-image-dir data/derived_2class/images --output reports/phase42_independent_evaluation.json"
+  },
+  "caveats": [
+    "BLOCKED P1 AUDIT: no detector inference was executed and no detector metric is reported.",
+    "The canonical serving path holds the non-production P0 smoke substitute; it is refused for evaluation.",
+    "The configured checkpoint does not match the documented historical v2 SHA-256 B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA.",
+    "data/independent/ is absent or incomplete; independent evaluation cannot be performed.",
+    "Historical Phase 40 numbers (mAP50=0.0423, mAP50-95=0.0121) belong to the former D:\\New folder (3) workspace and were not reproduced here.",
+    "Historical Phase 24D numbers were produced from the same-source derived split and are not independent evidence.",
+    "The current canonical checkpoint file is the P0 smoke substitute and is never reported as saferoute-yolo11-v2."
+  ],
+  "safety_note": "Phase 42 evaluates detector evidence reliability. This blocked audit makes no accuracy, safety, or deployment-readiness claim. Missing evidence is NOT_ASSESSED, never safe.",
+  "artifacts": {
+    "checkpoint_expected_v2_sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+    "checkpoint_matches_expected_v2": false,
+    "p0_smoke_substitute": true,
+    "detection_config_sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+    "severity_config_sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473",
+    "production_config_matches_phase42_pin": true,
+    "mutation_detected": false,
+    "production_scoring_modified": false,
+    "serving_checkpoint_modified": false,
+    "artifact_manifest_path": "reports/phase42_artifact_manifest.json"
+  }
+}

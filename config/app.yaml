@@ -51,7 +51,7 @@ app:
     base_url: "http://127.0.0.1:11434"
     # Installed local Ollama tag (verified with `ollama list`), not "llama3.2":
     # the configured model must exist locally or every explanation falls back.
-    model: "llama3:latest"
+    model: "qwen2.5:3b"
     # PHASE_28: bounded wait for the local model. The grounded prompt is small
     # (a few kB) and measured generation is ~2 s warm / ~7 s cold, so 45 s is
     # ample headroom for a cold model load behind another queued request while
@@ -61,6 +61,10 @@ app:
   server:
     host: "127.0.0.1"
     port: 8000
+    # PHASE_44: browser -> backend base URL. Empty string means "same origin",
+    # so the UI follows whatever host/port run_app.py --port uses. Set to an
+    # absolute URL only when the frontend is hosted on a different origin.
+    api_base_url: ""
 
   user_agent: "SafeRouteAI/1.0 (road-safety research)"
   static_dir: "frontend"

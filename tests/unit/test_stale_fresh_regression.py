@@ -17,6 +17,10 @@ from datetime import datetime, timezone
 
 SYN = "SYNTHETIC-"
 
+# PHASE_44: the API requires an explicit origin; no default is substituted.
+ORIGIN = {"latitude": 12.9716, "longitude": 77.5946}
+DEST = {"latitude": 12.9352, "longitude": 77.6245}
+
 
 class FreshImageryProvider(ImageryProvider):
     @property
@@ -135,7 +139,7 @@ class TestStaleImageryRegression(unittest.TestCase):
 
     def test_fresh_imagery_all_clean_tie_no_recommendation(self):
         api = self._api(FreshImageryProvider())
-        code, rec = api.analyze({"destination": {"latitude": 12.9352, "longitude": 77.6245}})
+        code, rec = api.analyze({"origin": ORIGIN, "destination": DEST})
         self.assertEqual(code, 200)
         comp = rec["comparison"]
         self.assertIsNone(comp["recommended_route_id"])
@@ -146,7 +150,7 @@ class TestStaleImageryRegression(unittest.TestCase):
     def test_all_stale_evidence_no_recommendation(self):
         """All routes stale -> stale evidence_class -> ineligible -> no recommendation."""
         api = self._api(AllStaleImageryProvider())
-        code, rec = api.analyze({"destination": {"latitude": 12.9352, "longitude": 77.6245}})
+        code, rec = api.analyze({"origin": ORIGIN, "destination": DEST})
         self.assertEqual(code, 200)
         comp = rec["comparison"]
         self.assertIsNone(comp["recommended_route_id"])
@@ -163,7 +167,7 @@ class TestStaleImageryRegression(unittest.TestCase):
 
     def test_missing_imagery_all_unassessed(self):
         api = self._api(MissingImageryProvider())
-        code, rec = api.analyze({"destination": {"latitude": 12.9352, "longitude": 77.6245}})
+        code, rec = api.analyze({"origin": ORIGIN, "destination": DEST})
         self.assertEqual(code, 200)
         comp = rec["comparison"]
         self.assertIsNone(comp["recommended_route_id"])
@@ -174,7 +178,7 @@ class TestStaleImageryRegression(unittest.TestCase):
         det = HazardDetector()
         det.target_route_id = None  # will set after routes call
         code_routes, routes_obj = self._api(FreshImageryProvider(), det).routes(
-            {"destination": {"latitude": 12.9352, "longitude": 77.6245}})
+            {"origin": ORIGIN, "destination": DEST})
         self.assertEqual(code_routes, 200)
         route_ids = [r["route_id"] for r in routes_obj["routes"]]
         self.assertGreaterEqual(len(route_ids), 2)
@@ -182,7 +186,7 @@ class TestStaleImageryRegression(unittest.TestCase):
         # score comparison would prefer the stale-clean route.
         det.target_route_id = route_ids[1]
         api = self._api(PerRouteStaleProvider(stale_route_id=route_ids[0]), det)
-        code, rec = api.analyze({"destination": {"latitude": 12.9352, "longitude": 77.6245}})
+        code, rec = api.analyze({"origin": ORIGIN, "destination": DEST})
         self.assertEqual(code, 200)
         comp = rec["comparison"]
         # stale route ineligible -> fresh hazarded route is the only eligible candidate

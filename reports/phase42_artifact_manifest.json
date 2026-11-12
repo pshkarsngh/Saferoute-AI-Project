@@ -1,0 +1,490 @@
+{
+  "phase": "PHASE_42",
+  "purpose": "P1 artifact recovery and blocked-report manifest",
+  "status": "NOT_ASSESSED",
+  "generated_utc": "2026-11-10T08:31:54.912068+00:00",
+  "git": {
+    "commit": "b3ee84fc2f2de50eb1fdba6d48d8729179ed49f0",
+    "branch": "main",
+    "dirty": true,
+    "status_porcelain": [
+      "?? scripts/audit/phase42_p1_artifact_audit.py",
+      "?? src/evaluation/artifact_audit.py",
+      "?? tests/unit/test_artifact_audit.py"
+    ]
+  },
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "generated_utc": "2026-11-10T08:31:40.966432+00:00",
+    "torch": "2.13.0+cu130",
+    "ultralytics": "8.4.163",
+    "cv2": "4.14.0",
+    "numpy": "2.5.3",
+    "cuda_available": true,
+    "cuda_device": "NVIDIA GeForce RTX 5050 Laptop GPU"
+  },
+  "production_contract": {
+    "detection_config_path": "D:\\COde\\Major project\\Saferoute-AI-Project\\config\\detection.yaml",
+    "severity_config_path": "D:\\COde\\Major project\\Saferoute-AI-Project\\config\\hazard_severity.yaml",
+    "detection_config_sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+    "severity_config_sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473",
+    "model_version": "saferoute-yolo11-v2",
+    "checkpoint": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v2\\weights\\best.pt",
+    "checkpoint_rel": "models/training/saferoute-yolo11-v2/weights/best.pt",
+    "imgsz": 640,
+    "conf": 0.25,
+    "iou": 0.45,
+    "max_det": 300,
+    "supported_classes": {
+      "0": "pothole",
+      "1": "crack"
+    },
+    "unsupported_classes": [
+      "manhole",
+      "damaged_patch",
+      "waterlogging",
+      "uneven_surface",
+      "speed_bump"
+    ],
+    "severity_confidence_threshold": 0.25
+  },
+  "checkpoint": {
+    "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v2\\weights\\best.pt",
+    "exists": true,
+    "sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+    "size_bytes": 5443482,
+    "marker_path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v2\\P0_SMOKE_SUBSTITUTE.json",
+    "marker_status": "NON_PRODUCTION_P0_SMOKE_SUBSTITUTE",
+    "is_smoke_substitute": true,
+    "expected_historical_v2_sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+    "expected_historical_v1_sha256": "61F6EDA2B7ABBF12B87355B1E0871F4B9F0435C3D68762AF89C5349908078E65",
+    "matches_expected_v2": false,
+    "provenance_documents": [
+      "docs/reports/PHASE_20_rdd2022_verification.md",
+      "docs/reports/PHASE_24D_FRESH_HOLDOUT_EVALUATION.md",
+      "docs/project-audit/06-ml-models-and-algorithms.md",
+      "reports/phase24d/v2_metrics.json",
+      "reports/phase24d/holdout_verification.json"
+    ]
+  },
+  "checkpoint_search": {
+    "roots": [
+      "D:\\",
+      "C:\\Users\\pushk"
+    ],
+    "excluded_dir_names": [
+      ".git",
+      ".venv",
+      "__pycache__",
+      "node_modules",
+      "site-packages"
+    ],
+    "min_size_bytes": 1000000,
+    "candidate_count": 6,
+    "candidates": [
+      {
+        "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\p0-smoke\\weights\\best.pt",
+        "size_bytes": 5443482,
+        "sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+        "modified_utc": "2026-11-10T07:16:24.183742+00:00"
+      },
+      {
+        "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\p0-smoke\\weights\\last.pt",
+        "size_bytes": 5443482,
+        "sha256": "7BA35DF6AE49C71C746E78AC714F62CC87B4882777286481F98A1427DDF8D5BC",
+        "modified_utc": "2026-11-10T07:16:24.046756+00:00"
+      },
+      {
+        "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v1\\weights\\best.pt",
+        "size_bytes": 5443482,
+        "sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+        "modified_utc": "2026-11-10T07:16:24.183742+00:00"
+      },
+      {
+        "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\models\\training\\saferoute-yolo11-v2\\weights\\best.pt",
+        "size_bytes": 5443482,
+        "sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+        "modified_utc": "2026-11-10T07:16:24.183742+00:00"
+      },
+      {
+        "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\weights\\yolo26n.pt",
+        "size_bytes": 5544453,
+        "sha256": "9B09CC8BF347F0FC8A5F7657480587F25DB09B34BF33B0652110FB03A8AD4FEF",
+        "modified_utc": "2026-11-10T07:11:11.718090+00:00"
+      },
+      {
+        "path": "D:\\COde\\Major project\\Saferoute-AI-Project\\yolo11n.pt",
+        "size_bytes": 5613764,
+        "sha256": "0EBBC80D4A7680D14987A577CD21342B65ECFD94632BD9A8DA63AE6417644EE1",
+        "modified_utc": "2026-11-10T07:11:02.981658+00:00"
+      }
+    ],
+    "search_log": [
+      "[WinError 5] Access is denied: 'D:\\\\System Volume Information'",
+      "[WinError 5] Access is denied: 'D:\\\\WindowsApps'",
+      "searched D:\\ in 0.1s",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\AppData\\\\Local\\\\Application Data'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\AppData\\\\Local\\\\History'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\AppData\\\\Local\\\\Microsoft\\\\Windows\\\\INetCache\\\\Content.IE5'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\AppData\\\\Local\\\\Microsoft\\\\Windows\\\\INetCache\\\\Low\\\\Content.IE5'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\AppData\\\\Local\\\\Microsoft\\\\Windows\\\\Temporary Internet Files'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\AppData\\\\Local\\\\Temporary Internet Files'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Application Data'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Cookies'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Documents\\\\My Music'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Documents\\\\My Pictures'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Documents\\\\My Videos'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Local Settings'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\My Documents'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\NetHood'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\PrintHood'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Recent'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\SendTo'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Start Menu'",
+      "[WinError 5] Access is denied: 'C:\\\\Users\\\\pushk\\\\Templates'",
+      "searched C:\\Users\\pushk in 5.0s"
+    ],
+    "expected_v2_sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+    "expected_v2_matches": []
+  },
+  "config_artifacts": {
+    "detection": {
+      "path": "config/detection.yaml",
+      "exists": true,
+      "sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+      "size_bytes": 1698
+    },
+    "severity": {
+      "path": "config/hazard_severity.yaml",
+      "exists": true,
+      "sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473",
+      "size_bytes": 2498
+    },
+    "matches_phase42_pins": true,
+    "phase42_detection_config_sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+    "phase42_severity_config_sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473"
+  },
+  "dataset_artifacts": {
+    "data/dataset.yaml": {
+      "path": "data/dataset.yaml",
+      "exists": true,
+      "sha256": "E7E66A098C9494A2B122E7816B81B08F1252774AF1718C77C22929537CB38B7C",
+      "size_bytes": 930
+    },
+    "data/dataset_v2.yaml": {
+      "path": "data/dataset_v2.yaml",
+      "exists": true,
+      "sha256": "335531CECA74B0DDBB22748595B3840CAA2CA9BC497E2E997DC837A63923E574",
+      "size_bytes": 771
+    },
+    "data/splits_v2/train.txt": {
+      "path": "data/splits_v2/train.txt",
+      "exists": true,
+      "sha256": "64357D46EEDFA854FB91160DE17E07EFC9637AC84A2B91E7192BBC61C16787AA",
+      "size_bytes": 88512
+    },
+    "data/splits_v2/val.txt": {
+      "path": "data/splits_v2/val.txt",
+      "exists": true,
+      "sha256": "942F363A30080EDD048B7705897F69FDF97FB8D1C2C3B2FCA0AA17D1D7CD43A2",
+      "size_bytes": 10720
+    },
+    "data/splits_v2/test.txt": {
+      "path": "data/splits_v2/test.txt",
+      "exists": true,
+      "sha256": "A870C730F3570B746F6E6D809D7E664C84694826B5BCB9A5623F4FE2CBDDE3C3",
+      "size_bytes": 13824
+    },
+    "data/splits_v2/quarantined.txt": {
+      "path": "data/splits_v2/quarantined.txt",
+      "exists": true,
+      "sha256": "6825756EB299558D9960CC3454B8FE4080ACB6C3BC4BBC40990DFC1A1C71565A",
+      "size_bytes": 3184
+    },
+    "data/splits_v2/split_manifest.csv": {
+      "path": "data/splits_v2/split_manifest.csv",
+      "exists": true,
+      "sha256": "05E7117286F84E8E2A87BD5E301DAD17126DAA7DF52C61DB9213A3C73AA36202",
+      "size_bytes": 263116
+    },
+    "data/derived_2class/MANIFEST.json": {
+      "path": "data/derived_2class/MANIFEST.json",
+      "exists": true,
+      "sha256": "3FFF746E519F6508908AC1EF233DD24BEE84AD7D487AEC1D43B098FAC1475559",
+      "size_bytes": 10657
+    },
+    "data/pothole_crack_manhole/data/annotations_coco.json": {
+      "path": "data/pothole_crack_manhole/data/annotations_coco.json",
+      "exists": true,
+      "sha256": "57BC2455AC5133BEF8624CBAEB92CDF2817873ACCACE12B24FD7A88C8207AD8B",
+      "size_bytes": 1475393
+    },
+    "data/pothole_crack_manhole/data/dataset.yaml": {
+      "path": "data/pothole_crack_manhole/data/dataset.yaml",
+      "exists": false,
+      "sha256": null,
+      "size_bytes": null
+    }
+  },
+  "independent_dataset": {
+    "path": "data/independent",
+    "exists": false,
+    "layout_complete": false,
+    "missing_components": [
+      "dataset.yaml",
+      "images/test",
+      "labels/test",
+      "manifests/independent_manifest.json"
+    ],
+    "image_count": 0,
+    "label_count": 0,
+    "missing_label_count": 0,
+    "session_manifest_present": false,
+    "training_session_manifest_present": false,
+    "manifest_present": false,
+    "manifest_error": null,
+    "manifest_keys": [],
+    "annotation_version": null,
+    "provenance_present": false,
+    "quality_control_present": false,
+    "independence_established": false
+  },
+  "reference_corpus": {
+    "derived_corpus": {
+      "path": "data/derived_2class",
+      "image_count": 2009,
+      "label_count": 1792,
+      "split_counts": {
+        "train": 1398,
+        "val": 178,
+        "test": 216,
+        "quarantined": 212
+      },
+      "source_note": "Same-source CC BY 4.0 dashcam data; derived two-class labels. Not independent evidence for Phase 42."
+    },
+    "source_corpus": {
+      "path": "data/pothole_crack_manhole/data",
+      "image_count": 2009,
+      "label_count": 2009
+    },
+    "split_manifest": {
+      "path": "data/splits_v2/split_manifest.csv",
+      "exists": true,
+      "row_count": 2009,
+      "columns": [
+        "stem",
+        "capture_date",
+        "split",
+        "kept",
+        "exclude_reason",
+        "n_pothole_src",
+        "n_crack_src",
+        "n_manhole_dropped",
+        "n_zero_area_dropped",
+        "sha256_image",
+        "keeper_of"
+      ],
+      "has_session_id_column": false,
+      "has_capture_date_column": true,
+      "unique_capture_dates_by_split": {
+        "quarantine": [
+          "UNKNOWN"
+        ],
+        "test": [
+          "2025-02-26"
+        ],
+        "train": [
+          "2025-02-18",
+          "2025-02-19"
+        ],
+        "val": [
+          "2025-02-16",
+          "2025-02-23",
+          "2025-03-16"
+        ]
+      },
+      "capture_dates_spanning_multiple_splits": [],
+      "date_atomic_proxy_passed": true,
+      "limitation": "capture_date is a filename-derived session proxy, not a verified collection-session identity. It cannot prove video/camera/geography separation from an external independent corpus."
+    },
+    "reference_session_registry_present": false,
+    "distance_metadata_present": false,
+    "route_metadata_present": false,
+    "independence_established": false
+  },
+  "candidate_corpus": {
+    "path": "data/imagery/mapillary",
+    "image_count": 98,
+    "label_count": 0,
+    "annotated": false,
+    "independent_manifest_present": false,
+    "session_manifest_present": false,
+    "source": "Mapillary",
+    "licence": "CC-BY-SA 4.0 per config/imagery.yaml; per-image attribution/licence has not been re-verified in this audit.",
+    "usable_as_independent_evidence": false,
+    "reason": "No ground-truth annotations, no annotation policy/QC, no session manifest, and the corpus is far below the 1,500-3,000 image target."
+  },
+  "evaluation_code": {
+    "src/evaluation/__init__.py": {
+      "path": "src/evaluation/__init__.py",
+      "exists": true,
+      "sha256": "0C6DB10403B6572E9A07A2DDBB470186E43649B754722A89A48113FB3500532C",
+      "size_bytes": 1913
+    },
+    "src/evaluation/artifact_audit.py": {
+      "path": "src/evaluation/artifact_audit.py",
+      "exists": true,
+      "sha256": "AAC8769A0D6633F4C1AA22EDB6A2BC79F09770D16FF0482922E3F2BA86DA20A5",
+      "size_bytes": 45683
+    },
+    "src/evaluation/confidence_intervals.py": {
+      "path": "src/evaluation/confidence_intervals.py",
+      "exists": true,
+      "sha256": "02EE18031CF7AE571A7A8DFE644EA4EEA2D09457BE819BAF6CA8219A20FE920C",
+      "size_bytes": 5696
+    },
+    "src/evaluation/dataset_validation.py": {
+      "path": "src/evaluation/dataset_validation.py",
+      "exists": true,
+      "sha256": "7A5524AB373C07762C19D08F90C61423CF547CBD42560720943C22C709664BFA",
+      "size_bytes": 27398
+    },
+    "src/evaluation/evaluator.py": {
+      "path": "src/evaluation/evaluator.py",
+      "exists": true,
+      "sha256": "1158EDDE21EE1DC01230DC95D929DDDAF57F7BA9E379685FA8153369BFDA970C",
+      "size_bytes": 60734
+    },
+    "src/evaluation/leakage.py": {
+      "path": "src/evaluation/leakage.py",
+      "exists": true,
+      "sha256": "17E370E2F26051F8AF75D1C120DE0FEEB0222A1995CDAD7D053E58745A890339",
+      "size_bytes": 14472
+    },
+    "src/evaluation/matching.py": {
+      "path": "src/evaluation/matching.py",
+      "exists": true,
+      "sha256": "18DB9B1D9F1DC4678869255DF27BABC4EE105519DF79A9F13DDF6D60B33DCC43",
+      "size_bytes": 13198
+    },
+    "src/evaluation/metrics.py": {
+      "path": "src/evaluation/metrics.py",
+      "exists": true,
+      "sha256": "585DA8889BE8EE69F446C04CFD927E872DDD85FC83EB451FA22713483C1241BE",
+      "size_bytes": 14740
+    },
+    "src/evaluation/route_replay.py": {
+      "path": "src/evaluation/route_replay.py",
+      "exists": true,
+      "sha256": "BBFD193AD5BFF27A1C9067AA66B686AC2053624B3B3ACC526C4FCBEDC770EA86",
+      "size_bytes": 17288
+    },
+    "scripts/evaluate_independent.py": {
+      "path": "scripts/evaluate_independent.py",
+      "exists": true,
+      "sha256": "846245AE9135DDDE889BD0A5975A0F2B5C60B4FB1D14B88CE5DE10C5528317E1",
+      "size_bytes": 6591
+    },
+    "scripts/audit/phase42_p1_artifact_audit.py": {
+      "path": "scripts/audit/phase42_p1_artifact_audit.py",
+      "exists": true,
+      "sha256": "77809C1EAB35464577F6EF37A3F7B28D4BA4D158C96E4639FA111B5E78876A75",
+      "size_bytes": 3813
+    }
+  },
+  "production_scoring": {
+    "engine": {
+      "path": "src/risk/engine.py",
+      "exists": true,
+      "sha256": "16319D56B457D039E7E92458BE8F3BCF2443039382EA2D4597E0E5AF3AC834EE",
+      "size_bytes": 14356
+    },
+    "aggregation": {
+      "path": "src/risk/aggregate.py",
+      "exists": true,
+      "sha256": "3144F027F80D0517D3A4F85A0CB4B64F887800684E5F6EC1AFDF24B79942A10C",
+      "size_bytes": 12644
+    },
+    "modified_by_audit": false
+  },
+  "integrity": {
+    "before": {
+      "checkpoint_sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+      "checkpoint_size_bytes": 5443482,
+      "detection_config_sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+      "severity_config_sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473"
+    },
+    "after": {
+      "checkpoint_sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+      "checkpoint_size_bytes": 5443482,
+      "detection_config_sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+      "severity_config_sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473"
+    },
+    "mutation_detected": false,
+    "production_config_unchanged_since_phase42_harness": true,
+    "serving_checkpoint_modified": false,
+    "production_scoring_modified": false,
+    "secrets_read": false
+  },
+  "blockers": [
+    "configured_checkpoint_hash_does_not_match_historical_v2_pin",
+    "p0_smoke_substitute_present_and_refused",
+    "independent_dataset_missing",
+    "independent_session_manifest_missing",
+    "reference_training_session_manifest_missing",
+    "independent_manifest_missing",
+    "independent_annotation_policy_version_a_b_review_and_adjudication_missing",
+    "independent_geography_condition_coverage_unverified",
+    "verified_distance_metadata_missing_so_fp_per_km_unavailable",
+    "route_level_ground_truth_missing_so_replay_not_run"
+  ],
+  "recovery_request": {
+    "required_checkpoint": {
+      "path": "models/training/saferoute-yolo11-v2/weights/best.pt",
+      "expected_sha256": "B6354A562FDAF4B0A1498FDE2976930A94EAC8184083D0DD30342205DF8800BA",
+      "provenance": [
+        "docs/reports/PHASE_20_rdd2022_verification.md",
+        "docs/reports/PHASE_24D_FRESH_HOLDOUT_EVALUATION.md",
+        "docs/project-audit/06-ml-models-and-algorithms.md",
+        "reports/phase24d/v2_metrics.json",
+        "reports/phase24d/holdout_verification.json"
+      ],
+      "acceptance_rule": "Must be the original serving artifact from the v2 training run. The P0 smoke substitute, YOLO11 pretrained weights, v1 weights, a newly trained model, or an unknown file with a matching name are not acceptable."
+    },
+    "required_dataset": {
+      "path": "data/independent/",
+      "target_images": "1500-3000",
+      "required_layout": [
+        "dataset.yaml",
+        "images/test",
+        "labels/test",
+        "manifests/independent_manifest.json"
+      ],
+      "required_sessions": "collection_sessions.csv and training_sessions.csv",
+      "required_manifest_fields": [
+        "dataset_version",
+        "annotation_version",
+        "provenance",
+        "annotation policy/guideline",
+        "quality_control (annotator_a, annotator_b, adjudication)",
+        "images[] with image_id, file, session_id, condition, route_id, segment_id",
+        "verified distance_km where FP/km is to be reported"
+      ]
+    },
+    "required_annotation_quality": [
+      "documented guideline version",
+      "independent annotator A and B",
+      "adjudicator for disagreements",
+      "verified-negative confirmation for every empty label file",
+      "ambiguity log and resolution status"
+    ],
+    "approval_required": [
+      "Any external dataset download or licence acceptance",
+      "Any new imagery collection",
+      "Annotation labour for A/B review and adjudication"
+    ],
+    "after_recovery_command": ".\\.venv\\Scripts\\python.exe scripts\\evaluate_independent.py --dataset-yaml data/independent/dataset.yaml --manifest data/independent/manifests/independent_manifest.json --reference-sessions data/independent/manifests/training_sessions.csv --reference-image-dir data/derived_2class/images --output reports/phase42_independent_evaluation.json"
+  },
+  "safety_note": "No file in this manifest is a detector measurement. The manifest records artifact identity and missing evidence only."
+}

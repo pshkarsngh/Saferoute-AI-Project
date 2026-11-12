@@ -1,0 +1,24 @@
+{
+  "phase": "43",
+  "work_package": "P3.3",
+  "kind": "phase42_dataset_preflight",
+  "tool_version": "phase43-v1",
+  "generated_utc": "2026-11-10T08:54:40.708209+00:00",
+  "dataset_root": "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\independent",
+  "dataset_yaml": "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\independent\\dataset.yaml",
+  "checks": [
+    {
+      "check": "dataset_yaml_present",
+      "status": "NOT_ASSESSED",
+      "detail": "missing D:\\COde\\Major project\\Saferoute-AI-Project\\data\\independent\\dataset.yaml",
+      "evidence": {}
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "status": "NOT_ASSESSED",
+  "dataset_ready": false,
+  "detector_evaluation_blocked_by_model": true,
+  "note": "Dataset readiness only. Phase 42 detector evaluation additionally requires the genuine saferoute-yolo11-v2 checkpoint.",
+  "reason": "dataset_missing"
+}

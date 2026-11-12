@@ -39,11 +39,14 @@ class TestHazardDetector(unittest.TestCase):
 
     def test_detector_initialization(self):
         """Verify detector loads approved model and preprocessing pipeline."""
-        # model_version identifies the checkpoint actually loaded
-        # (src/detection/schemas.py: "Checkpoint model identifier"). This
-        # detector is constructed with the v1 checkpoint above, so it must
-        # report v1 even though the configured serving model is now v2.
-        self.assertEqual(self.detector.model_version, "saferoute-yolo11-v1")
+        # PHASE_44: truthful model identity contract. The checkpoint at
+        # APPROVED_CHECKPOINT is the P0 smoke substitute, so it must report
+        # p0-smoke-substitute (status SMOKE_SUBSTITUTE, validated False),
+        # not genuine v1.
+        self.assertEqual(self.detector.model_version, "p0-smoke-substitute")
+        self.assertEqual(self.detector.model_status, "SMOKE_SUBSTITUTE")
+        self.assertFalse(self.detector.detection_validated)
+        self.assertEqual(self.detector.declared_model_version, "saferoute-yolo11-v1")
         self.assertEqual(self.detector.detector_version, "detect-v2")
         self.assertEqual(self.detector.pipeline.version, "preprocess-v1")
         self.assertEqual(self.detector.checkpoint_path, APPROVED_CHECKPOINT.resolve())
@@ -69,8 +72,8 @@ class TestHazardDetector(unittest.TestCase):
         )
 
         self.assertIsInstance(result, ImageDetectionResult)
-        # Same explicit v1 checkpoint instance -> detections identify the loaded v1 model.
-        self.assertEqual(result.model_version, "saferoute-yolo11-v1")
+        # Detections carry the truthful model identity of the loaded checkpoint.
+        self.assertEqual(result.model_version, "p0-smoke-substitute")
         self.assertEqual(result.pipeline_version, "preprocess-v1")
         self.assertEqual(result.image_id, "test_img_001")
         self.assertEqual(result.route_id, "route_1")

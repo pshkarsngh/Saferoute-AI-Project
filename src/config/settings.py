@@ -74,6 +74,10 @@ class Settings:
     static_dir: str = "frontend"
     host: str = "127.0.0.1"
     port: int = 8000
+    # PHASE_44: browser API base. Empty string = same origin (recommended and
+    # port-independent). Set SAFEROUTE_API_BASE_URL to point the UI at a
+    # different backend origin when the frontend is hosted separately.
+    api_base_url: str = ""
 
     # Secrets (never serialised) ----------------------------------------
     mapillary_token: str = field(default="", repr=False)
@@ -138,6 +142,7 @@ def load_settings(
         static_dir=str(app.get("static_dir", "frontend")),
         host=str(server.get("host", "127.0.0.1")),
         port=int(server.get("port", 8000)),
+        api_base_url=str(server.get("api_base_url", "")),
     )
 
     # ---- Environment overrides (highest precedence) -------------------
@@ -153,6 +158,7 @@ def load_settings(
     s.static_dir = get_env("SAFEROUTE_STATIC_DIR", s.static_dir)
     s.host = get_env("SAFEROUTE_HOST", s.host)
     s.port = get_int("SAFEROUTE_PORT", s.port)
+    s.api_base_url = get_env("SAFEROUTE_API_BASE_URL", s.api_base_url).rstrip("/")
 
     # LLM: an explicit OLLAMA_BASE_URL implies enabling.
     ollama_base = get_env("OLLAMA_BASE_URL")

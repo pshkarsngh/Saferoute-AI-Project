@@ -1,0 +1,61 @@
+# Phase 43 — source and permission registry
+#
+# A source is usable only when a human has verified its licence/permission and
+# set approved_for_acquisition: true. This file deliberately approves nothing.
+# Editing it is a governance action: record the evidence path/URL and date.
+#
+# licence_id values are project labels, not legal advice. Where a source has not
+# been independently re-verified, permission_status stays pending.
+
+sources:
+  - source_id: mapillary
+    name: Mapillary street-level imagery
+    licence_id: CC-BY-SA-4.0
+    licence_url: https://www.mapillary.com/terms
+    permission_status: pending_verification
+    approved_for_acquisition: false
+    reference_only: false
+    evidence: config/imagery.yaml
+    notes: >
+      The workspace config records CC-BY-SA 4.0, but per-image attribution,
+      share-alike obligations and API terms have not been re-verified for
+      evaluation use. Any download requires a Mapillary token and explicit
+      operator approval.
+
+  - source_id: existing_same_source_corpus
+    name: Existing pothole/crack/manhole dashcam corpus
+    licence_id: CC-BY-4.0
+    licence_url: https://zenodo.org/records/18528034
+    permission_status: pending_verification
+    approved_for_acquisition: false
+    reference_only: true
+    evidence: data/derived_2class/MANIFEST.json
+    notes: >
+      Already used for training/validation. It is reference-only and can never
+      supply independent evaluation imagery. CC BY 4.0 is prior-reported and was
+      not independently re-verified in this workspace.
+
+  - source_id: operator_capture
+    name: Operator-collected road imagery
+    licence_id: OPERATOR-OWNED
+    licence_url: ""
+    permission_status: pending_operator_approval
+    approved_for_acquisition: false
+    reference_only: false
+    evidence: ""
+    notes: >
+      Requires written operator permission, a collection plan, privacy review
+      (faces/plates), and a named responsible owner before any capture begins.
+
+  - source_id: zenodo_18528034
+    name: Zenodo record 18528034 (prior-reported)
+    licence_id: CC-BY-4.0
+    licence_url: https://zenodo.org/records/18528034
+    permission_status: pending_verification
+    approved_for_acquisition: false
+    reference_only: false
+    evidence: docs/reports/PHASE_02_completion_report.md
+    notes: >
+      Listed only because workspace records cite it. The record, its licence and
+      its imagery have not been independently verified here, and its relationship
+      to the existing corpus must be established before use.

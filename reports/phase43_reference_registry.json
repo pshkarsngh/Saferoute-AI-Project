@@ -1,0 +1,91 @@
+{
+  "tool_version": "phase43-v1",
+  "generated_utc": "2026-11-10T08:54:33.485978+00:00",
+  "registry_csv": "D:\\COde\\Major project\\Saferoute-AI-Project\\reports\\phase43_training_sessions.csv",
+  "registry": {
+    "rows": [
+      {
+        "session_id": "dateproxy-2025-02-16",
+        "session_id_quality": "filename_date_proxy",
+        "verified": "false",
+        "split": "val",
+        "image_count": 3,
+        "capture_date": "2025-02-16",
+        "camera_ids": "",
+        "route_ids": "",
+        "evidence": "data/splits_v2/split_manifest.csv filename-derived capture_date"
+      },
+      {
+        "session_id": "dateproxy-2025-02-18",
+        "session_id_quality": "filename_date_proxy",
+        "verified": "false",
+        "split": "train",
+        "image_count": 579,
+        "capture_date": "2025-02-18",
+        "camera_ids": "",
+        "route_ids": "",
+        "evidence": "data/splits_v2/split_manifest.csv filename-derived capture_date"
+      },
+      {
+        "session_id": "dateproxy-2025-02-19",
+        "session_id_quality": "filename_date_proxy",
+        "verified": "false",
+        "split": "train",
+        "image_count": 819,
+        "capture_date": "2025-02-19",
+        "camera_ids": "",
+        "route_ids": "",
+        "evidence": "data/splits_v2/split_manifest.csv filename-derived capture_date"
+      },
+      {
+        "session_id": "dateproxy-2025-02-23",
+        "session_id_quality": "filename_date_proxy",
+        "verified": "false",
+        "split": "val",
+        "image_count": 39,
+        "capture_date": "2025-02-23",
+        "camera_ids": "",
+        "route_ids": "",
+        "evidence": "data/splits_v2/split_manifest.csv filename-derived capture_date"
+      },
+      {
+        "session_id": "dateproxy-2025-02-26",
+        "session_id_quality": "filename_date_proxy",
+        "verified": "false",
+        "split": "test",
+        "image_count": 216,
+        "capture_date": "2025-02-26",
+        "camera_ids": "",
+        "route_ids": "",
+        "evidence": "data/splits_v2/split_manifest.csv filename-derived capture_date"
+      },
+      {
+        "session_id": "dateproxy-2025-03-16",
+        "session_id_quality": "filename_date_proxy",
+        "verified": "false",
+        "split": "val",
+        "image_count": 136,
+        "capture_date": "2025-03-16",
+        "camera_ids": "",
+        "route_ids": "",
+        "evidence": "data/splits_v2/split_manifest.csv filename-derived capture_date"
+      }
+    ],
+    "errors": [],
+    "warnings": [
+      "217 duplicate-source row(s) were excluded from the registry because kept=false.",
+      "No camera ids exist in the split manifest; camera/video separation cannot be established from this registry.",
+      "No route ids exist in the split manifest; route-level separation cannot be established from this registry.",
+      "The registry is proxy-only. Capture dates come from filenames and do not prove that no training clip, camera or route supplied independent imagery."
+    ],
+    "image_count": 1792,
+    "session_count": 6,
+    "verified": false,
+    "proxy_only": true,
+    "quality": "filename_date_proxy",
+    "source_manifest": "data/splits_v2/split_manifest.csv",
+    "source_manifest_sha256": "05E7117286F84E8E2A87BD5E301DAD17126DAA7DF52C61DB9213A3C73AA36202",
+    "note": "Proxy rows group existing images by filename-derived capture date. They do not prove camera/video/route separation and must not be presented as verified collection sessions."
+  },
+  "status": "NOT_ASSESSED"
+}

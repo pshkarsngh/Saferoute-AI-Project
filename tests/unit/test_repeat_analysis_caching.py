@@ -329,6 +329,77 @@ class TestLlmReplyCache(unittest.TestCase):
 
         self.assertEqual(len(calls), 2)
 
+    def test_rejected_reply_is_not_cached(self):
+        """A reply that fails grounding must be regenerated, never replayed."""
+        replies = [
+            # First reply names a route the backend never verified -> rejected.
+            {"response": json.dumps({
+                "explanation": "Route route_z is the safest choice.",
+                "referenced_routes": ["route_z"],
+                "referenced_hazards": [],
+                "disclosures": [],
+            })},
+            # Second reply quotes only verified evidence -> accepted.
+            {"response": json.dumps({
+                "explanation": "Route route_a has a deterministic score of 82.5.",
+                "referenced_routes": ["route_a"],
+                "referenced_hazards": ["pothole"],
+                "disclosures": [],
+            })},
+        ]
+        calls = []
+
+        class _Response:
+            def __init__(self, payload):
+                self._payload = payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return json.dumps(self._payload).encode("utf-8")
+
+        def _urlopen(req, timeout=None):
+            calls.append(req)
+            index = min(len(calls) - 1, len(replies) - 1)
+            return _Response(replies[index])
+
+        payload = {
+            "analysis_id": "an-cache",
+            "model_version": "saferoute-yolo11-v1",
+            "config_hash": "ABC",
+            "routes": [
+                {"route_id": "route_a", "route_score": 82.5, "status": "assessed",
+                 "coverage": {"fraction": 1.0},
+                 "hazards": [{"hazard_class": "pothole", "severity": 3.1}]},
+            ],
+            "recommendation": "route_a",
+            "limitations": [],
+            "comparison": {
+                "recommended_route_id": "route_a",
+                "recommendation_status": "recommended",
+                "comparability": "sufficiently_assessed_comparison",
+                "cannot_determine_reason": None,
+                "tied_route_ids": [],
+                "unassessed_route_ids": [],
+                "recommendation_reasons": ["Highest deterministic safety score (82.5/100)."],
+                "ranking": [],
+            },
+        }
+        service = GroundedExplanationService(
+            base_url="http://127.0.0.1:9", model="test", enabled=True)
+        with mock.patch("urllib.request.urlopen", _urlopen):
+            first = service.explain(payload)
+            second = service.explain(payload)
+
+        self.assertEqual(first.source, "fallback")
+        self.assertEqual(second.source, "ollama")
+        self.assertEqual(len(calls), 2,
+                         "a rejected reply must never be replayed from the cache")
+
 
 if __name__ == "__main__":
     unittest.main()

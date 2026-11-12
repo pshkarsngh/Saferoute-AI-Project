@@ -1,0 +1,137 @@
+{
+  "port8000_route_parity": {
+    "preview_provider": "multi",
+    "preview_providers": [
+      "osrm",
+      "valhalla"
+    ],
+    "preview_route_ids": [
+      "rt-osrm-53b3-00",
+      "rt-osrm-53b3-01",
+      "rt-val-9cef-00"
+    ],
+    "analyze_route_ids": [
+      "rt-osrm-618e-00",
+      "rt-osrm-618e-01",
+      "rt-val-8dce-00"
+    ],
+    "identical": false,
+    "preview_count": 3,
+    "analyze_count": 3
+  },
+  "port8000_identity": {
+    "health": [
+      "p0-smoke-substitute",
+      "SMOKE_SUBSTITUTE",
+      false,
+      "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0"
+    ],
+    "config": [
+      "p0-smoke-substitute",
+      "SMOKE_SUBSTITUTE",
+      false,
+      "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0"
+    ],
+    "analysis": [
+      "p0-smoke-substitute",
+      "SMOKE_SUBSTITUTE",
+      false,
+      "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0"
+    ],
+    "all_equal": true,
+    "analysis_recommendation_null": true,
+    "analysis_comparison_recommended_route_id_null": true,
+    "analysis_gate": {
+      "required_for_recommendation": true,
+      "validated": false,
+      "model_status": "SMOKE_SUBSTITUTE",
+      "model_version": "p0-smoke-substitute",
+      "recommendation_suppressed": false
+    }
+  },
+  "port8765_analysis": {
+    "model_version": "p0-smoke-substitute",
+    "model_status": "SMOKE_SUBSTITUTE",
+    "detection_validated": false,
+    "checkpoint_sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+    "recommendation_null": true,
+    "gate": {
+      "required_for_recommendation": true,
+      "validated": false,
+      "model_status": "SMOKE_SUBSTITUTE",
+      "model_version": "p0-smoke-substitute",
+      "recommendation_suppressed": false
+    }
+  },
+  "port8765_400_spotcheck": {
+    "missing_origin": {
+      "status": 400,
+      "error_code": "missing_location"
+    },
+    "malformed": {
+      "status": 400,
+      "error_code": "invalid_coordinates"
+    },
+    "out_of_range": {
+      "status": 400,
+      "error_code": "invalid_coordinates"
+    }
+  },
+  "port8000_route_parity_back_to_back": {
+    "preview_route_count": 3,
+    "analyze_route_count": 3,
+    "preview_providers": [
+      "osrm",
+      "valhalla"
+    ],
+    "analyze_providers": [
+      "osrm",
+      "valhalla"
+    ],
+    "preview_signature": [
+      {
+        "provider": "osrm",
+        "distance_m": 13009.5,
+        "duration_s": 1002.4,
+        "geometry_points": null
+      },
+      {
+        "provider": "osrm",
+        "distance_m": 13386.8,
+        "duration_s": 907.7,
+        "geometry_points": null
+      },
+      {
+        "provider": "valhalla",
+        "distance_m": 33559.0,
+        "duration_s": 4364.7,
+        "geometry_points": null
+      }
+    ],
+    "analyze_signature": [
+      {
+        "provider": "osrm",
+        "distance_m": 13009.5,
+        "duration_s": 1002.4,
+        "geometry_points": null
+      },
+      {
+        "provider": "osrm",
+        "distance_m": 13386.8,
+        "duration_s": 907.7,
+        "geometry_points": null
+      },
+      {
+        "provider": "valhalla",
+        "distance_m": 33559.0,
+        "duration_s": 4364.7,
+        "geometry_points": null
+      }
+    ],
+    "signatures_identical": true,
+    "note": "route_id suffixes are per-request uuid4 values; parity is checked on provider/distance/duration/geometry",
+    "analysis_id": "an-b125098739c5",
+    "recommendation_null": true,
+    "comparison_recommended_route_id_null": true
+  }
+}

@@ -185,6 +185,10 @@ class GroundedExplanationService:
         # Diagnostic only: why the last live reply was rejected (never exposed
         # as a user-facing claim).
         self.last_error: Optional[str] = None
+        # Observability (audit 08 §3.4): count deterministic fallbacks so a
+        # silent, persistent degradation is visible in /api/health instead of
+        # going unnoticed. This never changes which explanation is returned.
+        self.fallback_count = 0
         # PHASE_31: an identical grounded prompt (same model, system prompt and
         # verified payload) already produced a reply, so repeating an analysis of
         # the same corridor does not pay for the same generation again. Only a
@@ -202,14 +206,18 @@ class GroundedExplanationService:
         self.last_error = None
         if self.enabled:
             try:
-                raw = self._call_ollama(payload, user_preferences)
+                raw, cache_identity = self._call_ollama(payload, user_preferences)
                 result = self._parse_and_ground(raw, payload)
                 if result is not None:
+                    # Cache ONLY a reply that passed grounding. A rejected reply
+                    # must never be replayed for the same evidence (Rule 12).
+                    self._remember_reply(cache_identity, raw)
                     return result
                 if not self.last_error:
                     self.last_error = "reply_rejected_by_grounding"
             except Exception as exc:  # noqa: BLE001 - any failure -> deterministic fallback
                 self.last_error = f"{type(exc).__name__}: {exc}"
+        self.fallback_count += 1
         return self._fallback(payload, analysis_id)
 
     # ------------------------------------------------------------------ #
@@ -243,12 +251,15 @@ class GroundedExplanationService:
 
         if self.enabled:
             try:
-                raw = self._call_ollama(payload, None)
+                raw, cache_identity = self._call_ollama(payload, None)
                 result = self._parse_and_ground(raw, payload)
                 if result is not None:
+                    # Same rule as explain(): only grounded replies are cached.
+                    self._remember_reply(cache_identity, raw)
                     return result
             except Exception:  # noqa: BLE001 - any failure -> deterministic fallback
                 pass
+        self.fallback_count += 1
         return self._route_fallback(route, ctx)
 
     @staticmethod
@@ -541,7 +552,16 @@ class GroundedExplanationService:
                 return projected
             limit = max(0, limit // 2)
 
-    def _call_ollama(self, payload: Dict[str, Any], user_preferences: Optional[str]) -> str:
+    def _call_ollama(
+        self, payload: Dict[str, Any], user_preferences: Optional[str]
+    ) -> Tuple[str, str]:
+        """Return ``(raw_reply, cache_identity)`` without caching the reply.
+
+        Caching is deliberately deferred to the caller: only a reply that has
+        passed grounding validation may be stored (Rule 12). The cache identity
+        is returned so the accepted reply can be stored under the same key the
+        lookup used.
+        """
         prompt_payload = self._build_prompt_payload(payload)
         # A per-route explanation names the single route it must describe; the
         # instruction is part of the DATA contract, not a user instruction.
@@ -588,23 +608,49 @@ class GroundedExplanationService:
             "format": OUTPUT_JSON_SCHEMA,
         }
         try:
-            return self._post_ollama(body, cache_identity)
+            return self._post_ollama(body, cache_identity, store=False), cache_identity
         except urllib.error.HTTPError as exc:
             # Older Ollama builds do not understand a JSON schema in "format".
             # Retry once in plain JSON mode before giving up (the deterministic
             # fallback still applies if that fails too).
             if exc.code == 400:
                 body["format"] = "json"
-                return self._post_ollama(body, cache_identity)
+                return self._post_ollama(body, cache_identity, store=False), cache_identity
             raise
 
-    def _post_ollama(self, body: Dict[str, Any], cache_identity: Optional[str] = None) -> str:
+    def _reply_cache_key(self, cache_identity: str) -> str:
+        return hashlib.sha256(
+            (self.base_url.rstrip("/") + "\n" + cache_identity).encode("utf-8")
+        ).hexdigest()
+
+    def _remember_reply(self, cache_identity: str, reply: str) -> None:
+        """Store a reply that passed grounding validation."""
+        if not isinstance(reply, str):
+            return
+        cache_key = self._reply_cache_key(cache_identity)
+        now = time.monotonic()
+        with self._reply_cache_lock:
+            if len(self._reply_cache) >= self.REPLY_CACHE_MAX_ENTRIES:
+                expired = [k for k, (ts, _) in self._reply_cache.items()
+                           if now - ts >= self.REPLY_CACHE_TTL_SECONDS]
+                for k in expired:
+                    self._reply_cache.pop(k, None)
+                while len(self._reply_cache) >= self.REPLY_CACHE_MAX_ENTRIES:
+                    oldest = min(self._reply_cache.items(), key=lambda kv: kv[1][0])[0]
+                    self._reply_cache.pop(oldest, None)
+            self._reply_cache[cache_key] = (now, reply)
+
+    def _post_ollama(
+        self,
+        body: Dict[str, Any],
+        cache_identity: Optional[str] = None,
+        *,
+        store: bool = True,
+    ) -> str:
         if cache_identity is None:
             cache_identity = hashlib.sha256(
                 json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
-        cache_key = hashlib.sha256(
-            (self.base_url.rstrip("/") + "\n" + cache_identity).encode("utf-8")
-        ).hexdigest()
+        cache_key = self._reply_cache_key(cache_identity)
         now = time.monotonic()
         with self._reply_cache_lock:
             hit = self._reply_cache.get(cache_key)
@@ -619,17 +665,8 @@ class GroundedExplanationService:
         with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         reply = data.get("response", "")
-        if isinstance(reply, str):
-            with self._reply_cache_lock:
-                if len(self._reply_cache) >= self.REPLY_CACHE_MAX_ENTRIES:
-                    expired = [k for k, (ts, _) in self._reply_cache.items()
-                               if now - ts >= self.REPLY_CACHE_TTL_SECONDS]
-                    for k in expired:
-                        self._reply_cache.pop(k, None)
-                    while len(self._reply_cache) >= self.REPLY_CACHE_MAX_ENTRIES:
-                        oldest = min(self._reply_cache.items(), key=lambda kv: kv[1][0])[0]
-                        self._reply_cache.pop(oldest, None)
-                self._reply_cache[cache_key] = (now, reply)
+        if store:
+            self._remember_reply(cache_identity, reply)
         return reply
 
     # ------------------------------------------------------------------ #

@@ -17,6 +17,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from src.config.thresholds import assert_threshold_consistency
+from src.config.env import WORKSPACE_ROOT
+from src.detection.model_identity import (
+    MODEL_STATUS_UNVERIFIED,
+    ModelIdentity,
+    resolve_configured_identity,
+)
 from src.facilities.service import FacilitiesService
 from src.imagery.adapter import PermittedImageryAdapter
 from src.imagery.schemas import (
@@ -112,7 +118,31 @@ class SafetyAnalysisPipeline:
         self.facilities = facilities_service or FacilitiesService()
         self.explainer = explainer or GroundedExplanationService()
         self.comparer = comparer or RouteComparer()
-        self.model_version = MODEL_VERSION
+        # PHASE_44: truthful model identity. The production serving checkpoint is
+        # resolved from config + marker/hash; an explicitly injected detector is
+        # never treated as validated (its identity is disclosed as unverified).
+        self._production_detector = detector is None
+        injected_identity = getattr(detector, "model_identity", None)
+        if isinstance(injected_identity, ModelIdentity):
+            self.model_identity = injected_identity
+        elif detector is not None:
+            declared = str(getattr(detector, "model_version", MODEL_VERSION) or MODEL_VERSION)
+            self.model_identity = ModelIdentity(
+                status=MODEL_STATUS_UNVERIFIED,
+                declared_model_version=declared,
+                model_version=declared,
+                checkpoint_present=False,
+                validated=False,
+                detail=(
+                    "An injected detector is in use; its checkpoint identity and "
+                    "detection quality are not independently verified."
+                ),
+            )
+        else:
+            self.model_identity = resolve_configured_identity(WORKSPACE_ROOT)
+        self.model_version = self.model_identity.model_version
+        self.model_status = self.model_identity.status
+        self.detection_validated = self.model_identity.validated
         self.config_hash = self.engine.config_hash
 
         # PHASE_26: imagery retrieval is network-bound and independent per segment,
@@ -221,6 +251,12 @@ class SafetyAnalysisPipeline:
             "providers": list(resp.providers),
             "model_version": self.model_version,
             "config_hash": self.config_hash,
+            # PHASE_44: detection identity/validation is disclosed on every
+            # analysis so a smoke or unverified checkpoint can never be read as
+            # a validated safety model.
+            "model_status": self.model_status,
+            "detection_validated": self.detection_validated,
+            "model_identity": self.model_identity.to_dict(),
             "routes": [],
             "recommendation": None,
             "limitations": list(resp.limitations),
@@ -313,6 +349,12 @@ class SafetyAnalysisPipeline:
         record["comparison"] = self._build_comparison(record["routes"], assessed_at=record["created_at"])
         comparison_ms = (time.perf_counter() - t0) * 1000.0
         record["recommendation"] = record["comparison"]["recommended_route_id"]
+        # PHASE_44: a recommendation is only defensible when the detector that
+        # produced the evidence is independently validated. Injected test
+        # detectors are exempt so existing deterministic-policy tests still
+        # exercise the comparison engine; the production serving path (no
+        # injected detector) is gated on the resolved checkpoint identity.
+        self._apply_detection_validation_gate(record)
         record["status"] = self._overall_status(record["routes"])
         # PHASE_31: the analysis-level explanation and the per-route explanations
         # are independent jobs over the same verified record, so they are issued
@@ -822,6 +864,43 @@ class SafetyAnalysisPipeline:
                     limitations.append(note)
             result["limitations"] = limitations
         return result
+
+    def _apply_detection_validation_gate(self, record: Dict[str, Any]) -> None:
+        """Never recommend a route from an unvalidated production detector.
+
+        The deterministic scores and ranking remain exactly as computed (Rule 7);
+        only the *recommendation* is withheld, because a recommendation is a
+        safety claim about real roads (Rules 9, 14, 20). Injected detectors used
+        by tests are exempt; production serving resolves a real checkpoint.
+        """
+        gate = {
+            "required_for_recommendation": bool(self._production_detector),
+            "validated": bool(self.detection_validated),
+            "model_status": self.model_status,
+            "model_version": self.model_version,
+            "recommendation_suppressed": False,
+        }
+        if self._production_detector and not self.detection_validated:
+            comparison = record.get("comparison") or {}
+            if comparison.get("recommended_route_id") is not None:
+                comparison["recommended_route_id"] = None
+                comparison["recommendation_status"] = "cannot_determine"
+                comparison["comparability"] = "detection_not_validated"
+                comparison["cannot_determine_reason"] = (
+                    "detection_not_validated: the serving detection checkpoint is "
+                    f"{self.model_status} ({self.model_version}), so no safest-route "
+                    "recommendation is issued. Deterministic scores remain visible as "
+                    "unvalidated pipeline evidence only."
+                )
+                comparison["recommendation_reasons"] = []
+                gate["recommendation_suppressed"] = True
+            record["recommendation"] = None
+            record.setdefault("limitations", []).append(
+                f"Detection model status is {self.model_status} "
+                f"({self.model_version}); detection is not validated and no "
+                "real-world safety recommendation is made."
+            )
+        record["detection_validation"] = gate
 
     def _build_comparison(self, routes: List[Dict[str, Any]],
                           assessed_at: Optional[str] = None) -> Dict[str, Any]:

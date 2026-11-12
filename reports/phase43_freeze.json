@@ -1,0 +1,16 @@
+{
+  "phase": "43",
+  "work_package": "P3.3",
+  "kind": "dataset_freeze",
+  "generated_utc": "2026-11-10T08:58:44.867322+00:00",
+  "status": "NOT_ASSESSED",
+  "frozen": false,
+  "written": false,
+  "dataset_root": "D:\\COde\\Major project\\Saferoute-AI-Project\\data\\independent",
+  "reason": "dataset_missing",
+  "errors": [
+    "dataset root does not exist: D:\\COde\\Major project\\Saferoute-AI-Project\\data\\independent"
+  ],
+  "warnings": [],
+  "note": "No independent dataset exists yet. Freezing is refused; no dataset.yaml or manifest was written."
+}

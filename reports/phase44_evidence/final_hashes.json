@@ -1,0 +1,64 @@
+{
+  "generated_utc": "2026-11-11T17:15:11Z",
+  "git_head": "b3ee84fc2f2de50eb1fdba6d48d8729179ed49f0",
+  "files": {
+    "config/detection.yaml": {
+      "sha256": "22371AE8C1DA3CBA77E40EE096337915D16C0CFDDB9E7E2AF9213F4BE1B18344",
+      "bytes": 1698
+    },
+    "config/hazard_severity.yaml": {
+      "sha256": "D11AA0F73511E4EEF4B49869D2D009F5F06048801A1B03A64ED5CDB407CDF473",
+      "bytes": 2498
+    },
+    "config/risk_engine.yaml": {
+      "sha256": "61B8143B42DF7FA76D2FF53902D4509D864D75B2705898FB32466E1559621D01",
+      "bytes": 1667
+    },
+    "src/risk/engine.py": {
+      "sha256": "16319D56B457D039E7E92458BE8F3BCF2443039382EA2D4597E0E5AF3AC834EE",
+      "bytes": 14356
+    },
+    "src/risk/aggregate.py": {
+      "sha256": "3144F027F80D0517D3A4F85A0CB4B64F887800684E5F6EC1AFDF24B79942A10C",
+      "bytes": 12644
+    },
+    "models/training/saferoute-yolo11-v2/weights/best.pt": {
+      "sha256": "19619F9934D346600717C8D6C395E7E307B6FB8842F738A225B5B02060B916D0",
+      "bytes": 5443482
+    },
+    "models/training/saferoute-yolo11-v2/P0_SMOKE_SUBSTITUTE.json": {
+      "sha256": "8B69C24E7B86976B3038BBA4B5BBFB639094EDC852FBAA4DC49EB933AF795D05",
+      "bytes": 2002
+    },
+    "frontend/assets/index-CXsvefbt.js": {
+      "sha256": "31A0F35FA4F6FA4077FE6CA7CA75E8C557C533E0FD379284199CEF2847824C1B",
+      "bytes": 1587479
+    },
+    "frontend/index.html": {
+      "sha256": "DAABE733D9971A2D7BBEC2C42E2EC92F8FEF96EF3A22D44F2F27B8D5ACDA7BF1",
+      "bytes": 572
+    },
+    "frontend/model-status.js": {
+      "sha256": "E9FA4DFDBCA528E23224E561B4BEF1F101F49235E60C9C683B24C1B02F4BB3E9",
+      "bytes": 2865
+    },
+    "frontend/backup/phase44_pre_edit/index-CXsvefbt.js": {
+      "sha256": "9C160BC10C209ABEF6DC3D7E24B553A6611E85DDEEA200A72CB61B00AAF5882C",
+      "bytes": 1585746
+    }
+  },
+  "phase42_baseline_comparison": {
+    "detection_config": true,
+    "severity_config": true,
+    "risk_engine": true,
+    "risk_aggregate": true,
+    "checkpoint": true,
+    "risk_engine_yaml_baseline": "NOT_RECORDED_IN_PHASE42_MANIFEST; git diff clean"
+  },
+  "phase44_bundle_manifest_comparison": {
+    "bundle_post_edit_matches": true,
+    "index_html_post_edit_matches": true,
+    "model_status_post_edit_matches": true,
+    "backup_matches_pre_edit": true
+  }
+}

@@ -8,6 +8,22 @@
 > **Companion rules:** [`../master_rules.md`](../master_rules.md) (authoritative)
 > **Companion documents:** [`PRD.md`](./PRD.md) · [`TRD.md`](./TRD.md) · *(planned)* `TRAINING_RULES.md`
 
+> **Implementation status (2026-11-11):** This is the original architecture
+> design. The system is now implemented and runnable. See
+> [`../README.md`](../README.md) and the Phase 44–46 reports under
+> [`../reports/`](../reports/). Statements below that describe a component as
+> "proposed" or "not implemented" reflect the drafting-time state, not the
+> current state.
+>
+> **Active workspace:** `D:\COde\Major project\Saferoute-AI-Project`. The
+> `D:\New folder (3)` path in the header is historical and is raised here
+> explicitly rather than silently overridden (`master_rules.md` Rule 1).
+>
+> **Current validation status:** the canonical detector checkpoint is a
+> non-production **P0 smoke substitute** (`SMOKE_SUBSTITUTE`, `validated: false`);
+> the genuine `saferoute-yolo11-v2` artifact is absent; independent evaluation is
+> **`NOT_ASSESSED`**; and **no detector accuracy or safety claim is made**.
+
 This document is subordinate to `master_rules.md`, `docs\PRD.md` and `docs\TRD.md`. Where
 any conflict arises, `master_rules.md` prevails and the conflict must be raised and resolved
 explicitly — never silently overridden.
